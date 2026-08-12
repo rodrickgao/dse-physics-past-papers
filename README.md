@@ -10,8 +10,12 @@ Visitors will be asked for the invite code before entering the study library.
 
 ## Publishing flow
 
-Changes pushed to the `main` branch are validated by GitHub Actions and then deployed to Cloudflare Workers. The public site remains protected by the Cloudflare-side invite code.
+Run `部署到GitHub和Cloudflare.cmd` after committing a change. It validates the
+website, pushes `main` to the private GitHub repository, and then deploys the
+same commit to Cloudflare Workers. The command stops on the first error so the
+two destinations cannot silently drift apart.
 
 ## Security
 
-The invite code, session-signing key, and Cloudflare API token are stored as encrypted platform secrets. They are never committed to this repository.
+The invite code and session-signing key are stored as encrypted Cloudflare
+secrets. They are never committed to this repository.
