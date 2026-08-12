@@ -1,0 +1,9 @@
+**/.git
+**/.github
+**/.wrangler
+.gitignore
+.assetsignore
+README.md
+wrangler.toml
+cloudflare/**
+在Chrome打开.cmd
