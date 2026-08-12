@@ -6,4 +6,6 @@
 README.md
 wrangler.toml
 cloudflare/**
+scripts/**
+*.cmd
 在Chrome打开.cmd
