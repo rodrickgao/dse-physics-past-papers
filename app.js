@@ -7,7 +7,11 @@
   const statistics = window.DSE_STATISTICS || {};
   const MISTAKE_STORAGE_KEY = "dse-physics-mistakes-v1";
   const THEME_STORAGE_KEY = "dse-physics-theme-v1";
-  const element = (id) => document.getElementById(id);
+  const elementCache = new Map();
+  const element = (id) => {
+    if (!elementCache.has(id)) elementCache.set(id, document.getElementById(id));
+    return elementCache.get(id);
+  };
   const escapeHtml = (value) => String(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -32,6 +36,7 @@
   }
 
   let mistakes = loadMistakes();
+  let mistakeEntriesCache = null;
 
   function initialTheme() {
     const current = document.documentElement.dataset.theme;
@@ -247,6 +252,68 @@
     ],
   };
 
+  const yearsByLanguage = Object.fromEntries(
+    ["eng", "chn"].map((language) => [
+      language,
+      (paperData?.years || [])
+        .filter((year) => year.language === language)
+        .sort((a, b) => Number(a.year) - Number(b.year)),
+    ])
+  );
+  const pointsByLanguage = textbookData?.languages || { eng: [], chn: [] };
+  const pointByLanguageAndSequence = Object.fromEntries(
+    Object.entries(pointsByLanguage).map(([language, points]) => [
+      language,
+      new Map(points.map((point) => [Number(point.sequence), point])),
+    ])
+  );
+  const booksByLanguage = Object.fromEntries(
+    Object.entries(bookOrder).map(([language, names]) => [
+      language,
+      names.map((name) => ({
+        name,
+        points: (pointsByLanguage[language] || []).filter((point) => point.book === name),
+      })),
+    ])
+  );
+  const chaptersByBook = new WeakMap();
+
+  function questionNumber(question, fallbackIndex) {
+    return Number(String(question.label).replace(/\D/g, "")) || fallbackIndex + 1;
+  }
+
+  const paperEntriesByLanguage = Object.fromEntries(
+    Object.entries(yearsByLanguage).map(([language, years]) => {
+      const entries = [];
+      years.forEach((year, yearIndex) => {
+        year.papers.slice(0, 3).forEach((paper, paperIndex) => {
+          paper.questions.forEach((question, questionIndex) => {
+            const number = questionNumber(question, questionIndex);
+            const network = knowledgeNetwork[networkKey(year.year, paperIndex, number)];
+            if (!network) return;
+            const primary = network.links.find((link) => link.type === "primary") || network.links[0];
+            entries.push({
+              year, yearIndex, paper, paperIndex, question, questionIndex,
+              questionNumber: number,
+              network,
+              chapter: primary ? (language === "eng" ? primary.chapterEn : primary.chapterZh) : "",
+            });
+          });
+        });
+      });
+      return entries;
+    })
+  );
+  const paperEntryByLanguageAndKey = Object.fromEntries(
+    Object.entries(paperEntriesByLanguage).map(([language, entries]) => [
+      language,
+      new Map(entries.map((entry) => [
+        networkKey(entry.year.year, entry.paperIndex, entry.questionNumber),
+        entry,
+      ])),
+    ])
+  );
+
   function currentCopy() {
     return copy[state.language];
   }
@@ -256,9 +323,7 @@
   }
 
   function visibleYears() {
-    return paperData.years
-      .filter((year) => year.language === state.language)
-      .sort((a, b) => Number(a.year) - Number(b.year));
+    return yearsByLanguage[state.language];
   }
 
   function currentPaper() {
@@ -289,20 +354,7 @@
   }
 
   function paperSearchEntries() {
-    const entries = [];
-    visibleYears().forEach((year, yearIndex) => {
-      year.papers.slice(0, 3).forEach((paper, paperIndex) => {
-        paper.questions.forEach((question, questionIndex) => {
-          const questionNumber = Number(String(question.label).replace(/\D/g, "")) || questionIndex + 1;
-          const network = knowledgeNetwork[networkKey(year.year, paperIndex, questionNumber)];
-          if (!network) return;
-          const primary = network.links.find((link) => link.type === "primary") || network.links[0];
-          const chapter = primary ? (state.language === "eng" ? primary.chapterEn : primary.chapterZh) : "";
-          entries.push({ year, yearIndex, paper, paperIndex, question, questionIndex, questionNumber, network, chapter });
-        });
-      });
-    });
-    return entries;
+    return paperEntriesByLanguage[state.language];
   }
 
   function matchingPaperEntries(yearValue, query, limit = 12) {
@@ -356,39 +408,29 @@
 
   function currentQuestionKey() {
     const { year, question } = currentPaper();
-    const number = Number(String(question.label).replace(/\D/g, "")) || state.question + 1;
+    const number = questionNumber(question, state.question);
     const key = networkKey(year.year, state.paper, number);
     return key && knowledgeNetwork[key] ? key : "";
   }
 
   function paperEntryForKey(key) {
-    return paperSearchEntries().find((entry) =>
-      networkKey(entry.year.year, entry.paperIndex, entry.questionNumber) === key
-    );
+    return paperEntryByLanguageAndKey[state.language].get(key);
   }
 
   function setMistake(key, marked) {
     if (!key || !knowledgeNetwork[key]) return;
     if (marked) mistakes[key] = { markedAt: new Date().toISOString() };
     else delete mistakes[key];
+    mistakeEntriesCache = null;
     saveMistakes();
   }
 
   function openQuestionKey(key) {
-    const [yearValue, paperId, questionValue] = String(key).split("|");
-    const years = visibleYears();
-    const yearIndex = years.findIndex((item) => String(item.year) === yearValue);
-    const paperIndex = ["paper-1a", "paper-1b", "paper-2"].indexOf(paperId);
-    if (yearIndex < 0 || paperIndex < 0) return;
-    const paper = years[yearIndex].papers[paperIndex];
-    const questionIndex = paper.questions.findIndex((item, index) => {
-      const number = Number(String(item.label).replace(/\D/g, "")) || index + 1;
-      return number === Number(questionValue);
-    });
-    if (questionIndex < 0) return;
-    state.year = yearIndex;
-    state.paper = paperIndex;
-    state.question = questionIndex;
+    const entry = paperEntryForKey(key);
+    if (!entry) return;
+    state.year = entry.yearIndex;
+    state.paper = entry.paperIndex;
+    state.question = entry.questionIndex;
     state.library = "papers";
     updateTopLevel();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -405,7 +447,7 @@
   function goToKnowledge(sequence) {
     const books = booksWithPoints();
     const bookIndex = books.findIndex((book) => book.points.some((point) => point.sequence === sequence));
-    const point = textbookPoints().find((item) => item.sequence === sequence);
+    const point = pointByLanguageAndSequence[state.language].get(Number(sequence));
     if (bookIndex < 0 || !point) return;
     state.library = "textbook";
     state.textbookDirectory = false;
@@ -464,7 +506,7 @@
 
   function renderRelatedKnowledge(year, paper, question) {
     const labels = currentCopy();
-    const number = Number(String(question.label).replace(/\D/g, "")) || state.question + 1;
+    const number = questionNumber(question, state.question);
     const network = knowledgeNetwork[networkKey(year.year, state.paper, number)];
     const panel = element("related-knowledge");
     if (!network) {
@@ -582,18 +624,15 @@
   }
 
   function textbookPoints() {
-    return textbookData.languages[state.language];
+    return pointsByLanguage[state.language];
   }
 
   function booksWithPoints() {
-    const points = textbookPoints();
-    return bookOrder[state.language].map((name) => ({
-      name,
-      points: points.filter((point) => point.book === name),
-    }));
+    return booksByLanguage[state.language];
   }
 
   function chaptersForBook(book) {
+    if (chaptersByBook.has(book)) return chaptersByBook.get(book);
     const chapters = [];
     const seen = new Set();
     book.points.forEach((point) => {
@@ -602,6 +641,7 @@
         chapters.push({ code: point.code, title: point.chapter });
       }
     });
+    chaptersByBook.set(book, chapters);
     return chapters;
   }
 
@@ -724,10 +764,13 @@
   }
 
   function mistakeEntries() {
-    return Object.entries(mistakes)
+    if (mistakeEntriesCache?.language === state.language) return mistakeEntriesCache.entries;
+    const entries = Object.entries(mistakes)
       .map(([key, meta]) => ({ key, meta, entry: paperEntryForKey(key), network: knowledgeNetwork[key] }))
       .filter((item) => item.entry && item.network)
       .sort((a, b) => String(b.meta?.markedAt || "").localeCompare(String(a.meta?.markedAt || "")));
+    mistakeEntriesCache = { language: state.language, entries };
+    return entries;
   }
 
   function mistakeAnalytics(entries) {
@@ -872,6 +915,31 @@
     element("theme-toggle").title = state.language === "eng" ? `Switch to ${label.toLowerCase()} mode` : `切换到${label}模式`;
   }
 
+  const libraryViews = ["home", "papers", "textbook", "mistakes"];
+
+  function setLibrary(library, { behavior = "smooth", textbookDirectory } = {}) {
+    state.library = library;
+    if (typeof textbookDirectory === "boolean") state.textbookDirectory = textbookDirectory;
+    updateTopLevel();
+    window.scrollTo({ top: 0, behavior });
+  }
+
+  function resetContentNavigation() {
+    Object.assign(state, {
+      year: 0,
+      paper: 0,
+      question: 0,
+      book: 0,
+      chapter: "all",
+      query: "",
+      textbookDirectory: true,
+      paperQuery: "",
+      paperSearchYear: "all",
+    });
+    mistakeEntriesCache = null;
+    element("textbook-search").value = "";
+  }
+
   function updateTopLevel() {
     const labels = currentCopy();
     const isHome = state.library === "home";
@@ -880,18 +948,13 @@
     const isMistakes = state.library === "mistakes";
     document.body.classList.toggle("home-mode", isHome);
     document.body.classList.toggle("section-mode", !isHome);
-    element("home-view").hidden = !isHome;
-    element("papers-view").hidden = !isPapers;
-    element("textbook-view").hidden = !isTextbook;
-    element("mistakes-view").hidden = !isMistakes;
-    element("home-tab").setAttribute("aria-selected", String(isHome));
-    element("papers-tab").setAttribute("aria-selected", String(isPapers));
-    element("textbook-tab").setAttribute("aria-selected", String(isTextbook));
-    element("mistakes-tab").setAttribute("aria-selected", String(isMistakes));
-    element("home-tab").classList.toggle("active", isHome);
-    element("papers-tab").classList.toggle("active", isPapers);
-    element("textbook-tab").classList.toggle("active", isTextbook);
-    element("mistakes-tab").classList.toggle("active", isMistakes);
+    libraryViews.forEach((library) => {
+      const active = library === state.library;
+      element(`${library}-view`).hidden = !active;
+      const tab = element(`${library}-tab`);
+      tab.setAttribute("aria-selected", String(active));
+      tab.classList.toggle("active", active);
+    });
     element("eng-button").classList.toggle("active", state.language === "eng");
     element("chn-button").classList.toggle("active", state.language === "chn");
     document.documentElement.lang = state.language === "eng" ? "en" : "zh-Hant";
@@ -928,16 +991,7 @@
     const button = event.target.closest("[data-language]");
     if (!button || button.dataset.language === state.language) return;
     state.language = button.dataset.language;
-    state.year = 0;
-    state.paper = 0;
-    state.question = 0;
-    state.book = 0;
-    state.chapter = "all";
-    state.query = "";
-    state.textbookDirectory = true;
-    state.paperQuery = "";
-    state.paperSearchYear = "all";
-    element("textbook-search").value = "";
+    resetContentNavigation();
     updateTopLevel();
   });
 
@@ -948,25 +1002,16 @@
   });
 
   element("open-papers").addEventListener("click", () => {
-    state.library = "papers";
-    updateTopLevel();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setLibrary("papers");
   });
   element("open-textbook").addEventListener("click", () => {
-    state.library = "textbook";
-    state.textbookDirectory = true;
-    updateTopLevel();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setLibrary("textbook", { textbookDirectory: true });
   });
   element("open-mistakes").addEventListener("click", () => {
-    state.library = "mistakes";
-    updateTopLevel();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setLibrary("mistakes");
   });
   element("browse-for-mistakes").addEventListener("click", () => {
-    state.library = "papers";
-    updateTopLevel();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setLibrary("papers");
   });
   element("mistake-toggle").addEventListener("click", () => {
     const key = element("mistake-toggle").dataset.questionKey;
@@ -1108,7 +1153,7 @@
     }
     const button = event.target.closest("[data-copy]");
     if (!button) return;
-    const point = textbookPoints().find((item) => item.sequence === Number(button.dataset.copy));
+    const point = pointByLanguageAndSequence[state.language].get(Number(button.dataset.copy));
     if (!point) return;
     await navigator.clipboard.writeText(point.content);
     const original = button.textContent;
@@ -1146,6 +1191,7 @@
   window.addEventListener("storage", (event) => {
     if (event.key !== MISTAKE_STORAGE_KEY) return;
     mistakes = loadMistakes();
+    mistakeEntriesCache = null;
     updateTopLevel();
   });
 
