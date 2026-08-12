@@ -301,7 +301,7 @@
           });
         });
       });
-      return entries;
+      return [language, entries];
     })
   );
   const paperEntryByLanguageAndKey = Object.fromEntries(
