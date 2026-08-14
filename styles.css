@@ -696,8 +696,70 @@ button:active:not(:disabled), .quick-result:active, .paper-search-result:active,
   font-size: clamp(.95rem, 1.7vw, 1.04rem);
   line-height: 1.72;
   overflow-wrap: anywhere;
-  white-space: pre-wrap;
 }
+.knowledge-content p { margin: 0; }
+.knowledge-content p + p { margin-top: .72em; }
+.content-gap { display: block; height: .72em; }
+.formula-block {
+  display: grid;
+  gap: 15px;
+}
+.formula-expression {
+  display: grid;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid color-mix(in srgb, var(--book-border, #b9c8df) 62%, white);
+  border-radius: 12px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, .68);
+  box-shadow: inset 3px 0 0 var(--book-border, #b9c8df);
+  color: #111c30;
+  font-family: "Cambria Math", "STIX Two Math", "Times New Roman", serif;
+  font-size: clamp(1.22rem, 2.5vw, 1.62rem);
+  font-weight: 600;
+  letter-spacing: .015em;
+  line-height: 1.42;
+  overflow-wrap: normal;
+}
+.formula-expression sub,
+.formula-expression sup {
+  position: relative;
+  font-size: .64em;
+  line-height: 0;
+}
+.formula-expression sub { bottom: -.12em; }
+.formula-expression sup { top: -.18em; }
+.formula-notes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 245px), 1fr));
+  gap: 8px 20px;
+}
+.formula-note {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+  padding: 3px 0;
+  line-height: 1.5;
+}
+.formula-symbol {
+  color: #15223a;
+  font-family: "Cambria Math", "STIX Two Math", "Times New Roman", serif;
+  font-size: 1.07em;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.formula-symbol::after { content: ":"; }
+.formula-definition { color: #4a5870; }
+.formula-condition {
+  grid-column: 1 / -1;
+  color: #4a5870;
+  font-style: italic;
+}
+.formula-notes sub,
+.formula-notes sup { font-size: .72em; line-height: 0; }
 .governing-law .knowledge-content { font-weight: 900; color: #101827; }
 .governing-law { box-shadow: 0 7px 24px rgba(37, 55, 82, .11); }
 .point-questions {
@@ -1585,6 +1647,14 @@ body.home-mode .collection-status { display: none; }
 }
 [data-theme="dark"] .knowledge-content,
 [data-theme="dark"] .governing-law .knowledge-content { color: var(--ink); }
+[data-theme="dark"] .formula-expression {
+  border-color: color-mix(in srgb, var(--book-border, #5d7392) 72%, #252a32);
+  background: rgba(19, 23, 30, .48);
+  color: #f4f7fb;
+}
+[data-theme="dark"] .formula-symbol { color: #eef3fb; }
+[data-theme="dark"] .formula-definition,
+[data-theme="dark"] .formula-condition { color: #bdc7d6; }
 [data-theme="dark"] .point-questions {
   border-top-color: rgba(255, 255, 255, .15);
   background: #1a1e24;

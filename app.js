@@ -18,6 +18,80 @@
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 
+  const superscriptDigits = {
+    "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
+    "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹",
+  };
+  const subscriptCharacters = {
+    "₀": "0", "₁": "1", "₂": "2", "₃": "3", "₄": "4",
+    "₅": "5", "₆": "6", "₇": "7", "₈": "8", "₉": "9",
+    "₊": "+", "₋": "−", "₌": "=", "₍": "(", "₎": ")",
+    "ₐ": "a", "ₑ": "e", "ₕ": "h", "ᵢ": "i", "ⱼ": "j",
+    "ₖ": "k", "ₗ": "l", "ₘ": "m", "ₙ": "n", "ₒ": "o",
+    "ₚ": "p", "ᵣ": "r", "ₛ": "s", "ₜ": "t", "ᵤ": "u",
+    "ᵥ": "v", "ₓ": "x",
+  };
+
+  function normalizeScientificExponents(value) {
+    return String(value)
+      .replace(/⁻(\d{1,3})/g, (_, digits) => `⁻${[...digits].map((digit) => superscriptDigits[digit]).join("")}`)
+      .replace(/([A-Za-z])(?:–|−)-(\d)/g, (_, symbol, digit) => `${symbol}⁻${superscriptDigits[digit]}`);
+  }
+
+  function mathMarkup(value) {
+    return escapeHtml(normalizeScientificExponents(value))
+      .replace(/([₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑₕᵢⱼₖₗₘₙₒₚᵣₛₜᵤᵥₓ]+)⁄([₀₁₂₃₄₅₆₇₈₉]+)/g, (_, numerator, denominator) => `<sub>${[...numerator].map((character) => subscriptCharacters[character]).join("")}/${[...denominator].map((character) => subscriptCharacters[character]).join("")}</sub>`)
+      .replace(/[₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑₕᵢⱼₖₗₘₙₒₚᵣₛₜᵤᵥₓ]+/g, (characters) => `<sub>${[...characters].map((character) => subscriptCharacters[character]).join("")}</sub>`)
+      .replace(/_\{([^{}]+)\}/g, "<sub>$1</sub>")
+      .replace(/_([A-Za-z0-9]+|½)/g, "<sub>$1</sub>")
+      .replace(/\^\(([^()]+)\)/g, "<sup>$1</sup>")
+      .replace(/\^([+\-−]?\d+)/g, "<sup>$1</sup>");
+  }
+
+  function noteMarkup(value) {
+    const note = String(value).trim();
+    const separator = note.match(/^([^:：]{1,32})([:：])(.*)$/s);
+    if (!separator) return `<span class="formula-condition">${mathMarkup(note)}</span>`;
+    return `<span class="formula-symbol">${mathMarkup(separator[1])}</span><span class="formula-definition">${mathMarkup(separator[3].trim())}</span>`;
+  }
+
+  function formulaMarkup(point) {
+    const formulaLines = String(point.formula || "").split("\n").map((line) => line.trim()).filter(Boolean);
+    const notes = String(point.formula_notes || "").split(/;\s*/).map((note) => note.trim()).filter(Boolean);
+    return `<section class="formula-block" aria-label="${escapeHtml(categoryLabel(point))}">
+      <div class="formula-expression">${formulaLines.map((line) => `<div>${mathMarkup(line)}</div>`).join("")}</div>
+      ${notes.length ? `<div class="formula-notes">${notes.map((note) => `<div class="formula-note">${noteMarkup(note)}</div>`).join("")}</div>` : ""}
+    </section>`;
+  }
+
+  function regularContentMarkup(point) {
+    const lines = String(point.content).split("\n");
+    if (point.category_code === "3" && lines.length > 1) {
+      const noteStart = lines.findIndex((line, index) => index > 0 && /^[^:：]{1,32}[:：]/.test(line.trim()));
+      if (noteStart > 0) {
+        const formula = lines.slice(0, noteStart).filter((line) => line.trim());
+        const notes = lines.slice(noteStart).join(" ").split(/[；;]\s*/).filter((note) => note.trim());
+        return `<section class="formula-block" aria-label="${escapeHtml(categoryLabel(point))}">
+          <div class="formula-expression">${formula.map((line) => `<div>${mathMarkup(line)}</div>`).join("")}</div>
+          <div class="formula-notes">${notes.map((note) => `<div class="formula-note">${noteMarkup(note)}</div>`).join("")}</div>
+        </section>`;
+      }
+    }
+    return lines.map((line) => line.trim()
+      ? `<p>${mathMarkup(line)}</p>`
+      : '<span class="content-gap" aria-hidden="true"></span>').join("");
+  }
+
+  function knowledgeContentMarkup(point) {
+    return point.formula ? formulaMarkup(point) : regularContentMarkup(point);
+  }
+
+  function copyTextForPoint(point) {
+    return point.formula
+      ? [point.formula, point.formula_notes].filter(Boolean).join("\n")
+      : point.content;
+  }
+
   function loadMistakes() {
     try {
       const value = JSON.parse(window.localStorage.getItem(MISTAKE_STORAGE_KEY) || "{}");
@@ -650,9 +724,16 @@
   }
 
   function pointMatches(point, query) {
+    const parallelPoints = ["eng", "chn"]
+      .map((language) => pointByLanguageAndSequence[language]?.get(Number(point.sequence)))
+      .filter(Boolean);
     const haystack = searchable([
       point.sequence, point.book, point.code, point.chapter,
-      point.content,
+      point.content, point.formula, point.formula_notes,
+      ...parallelPoints.flatMap((parallelPoint) => [
+        parallelPoint.book, parallelPoint.chapter, parallelPoint.content,
+        parallelPoint.formula, parallelPoint.formula_notes,
+      ]),
     ].join(" "));
     return searchable(query).split(" ").filter(Boolean).every((term) => haystack.includes(term));
   }
@@ -679,7 +760,7 @@
             ${labels.copy}
           </button>
         </div>
-        <div class="knowledge-content">${escapeHtml(point.content)}</div>
+        <div class="knowledge-content ${point.formula || point.category_code === "3" ? "has-formula" : ""}">${knowledgeContentMarkup(point)}</div>
         ${questionSection}
       </article>`;
   }
@@ -924,20 +1005,59 @@
     window.scrollTo({ top: 0, behavior });
   }
 
-  function resetContentNavigation() {
-    Object.assign(state, {
-      year: 0,
-      paper: 0,
-      question: 0,
-      book: 0,
-      chapter: "all",
-      query: "",
-      textbookDirectory: true,
-      paperQuery: "",
-      paperSearchYear: "all",
+  function currentPaperIdentity() {
+    const { year, paper, question } = currentPaper();
+    return {
+      year: String(year.year),
+      paper: paperIdAt(state.paper),
+      question: questionNumber(question, state.question),
+    };
+  }
+
+  function restorePaperIdentity(identity) {
+    const years = visibleYears();
+    const yearIndex = years.findIndex((year) => String(year.year) === identity.year);
+    state.year = yearIndex >= 0 ? yearIndex : Math.min(state.year, years.length - 1);
+    const year = years[state.year];
+    const paperIndex = ["paper-1a", "paper-1b", "paper-2"].indexOf(identity.paper);
+    state.paper = paperIndex >= 0 && paperIndex < year.papers.length
+      ? paperIndex
+      : Math.min(state.paper, year.papers.length - 1);
+    const paper = year.papers[state.paper];
+    const questionIndex = paper.questions.findIndex((question, index) => (
+      questionNumber(question, index) === identity.question
+    ));
+    state.question = questionIndex >= 0
+      ? questionIndex
+      : Math.min(state.question, paper.questions.length - 1);
+  }
+
+  function visibleKnowledgeAnchor() {
+    if (state.library !== "textbook" || state.textbookDirectory) return null;
+    const cards = [...document.querySelectorAll(".knowledge-point")];
+    const card = cards.find((item) => item.getBoundingClientRect().bottom > 0) || cards[0];
+    if (!card) return null;
+    return {
+      sequence: card.id.replace("point-", ""),
+      top: card.getBoundingClientRect().top,
+    };
+  }
+
+  function restoreReadingPosition(anchor, scrollTop) {
+    window.requestAnimationFrame(() => {
+      const card = anchor ? document.getElementById(`point-${anchor.sequence}`) : null;
+      const scrollingElement = document.scrollingElement || document.documentElement;
+      const previousScrollBehavior = scrollingElement.style.scrollBehavior;
+      scrollingElement.style.scrollBehavior = "auto";
+      if (card) {
+        scrollingElement.scrollTop += card.getBoundingClientRect().top - anchor.top;
+      } else {
+        scrollingElement.scrollTop = scrollTop;
+      }
+      window.requestAnimationFrame(() => {
+        scrollingElement.style.scrollBehavior = previousScrollBehavior;
+      });
     });
-    mistakeEntriesCache = null;
-    element("textbook-search").value = "";
   }
 
   function updateTopLevel() {
@@ -990,9 +1110,14 @@
   document.querySelector(".language-switch").addEventListener("click", (event) => {
     const button = event.target.closest("[data-language]");
     if (!button || button.dataset.language === state.language) return;
+    const paperIdentity = state.library === "papers" ? currentPaperIdentity() : null;
+    const knowledgeAnchor = visibleKnowledgeAnchor();
+    const scrollTop = window.scrollY;
     state.language = button.dataset.language;
-    resetContentNavigation();
+    if (paperIdentity) restorePaperIdentity(paperIdentity);
+    mistakeEntriesCache = null;
     updateTopLevel();
+    restoreReadingPosition(knowledgeAnchor, scrollTop);
   });
 
   element("theme-toggle").addEventListener("click", () => {
@@ -1155,7 +1280,7 @@
     if (!button) return;
     const point = pointByLanguageAndSequence[state.language].get(Number(button.dataset.copy));
     if (!point) return;
-    await navigator.clipboard.writeText(point.content);
+    await navigator.clipboard.writeText(copyTextForPoint(point));
     const original = button.textContent;
     button.textContent = currentCopy().copied;
     window.setTimeout(() => { button.textContent = original; }, 900);
