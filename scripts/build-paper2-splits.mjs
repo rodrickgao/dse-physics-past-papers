@@ -7,6 +7,21 @@ const assetsRoot = path.join(siteRoot, "assets");
 const siteDataPath = path.join(siteRoot, "site-data.js");
 const manifestPath = path.join(import.meta.dirname, "paper2-crop-manifest.json");
 
+const sectionTitles = {
+  eng: [
+    "Astronomy and Space Science",
+    "Atomic World",
+    "Energy and Use of Energy",
+    "Medical Physics",
+  ],
+  chn: [
+    "天文學和航天科學",
+    "原子世界",
+    "能量和能源的使用",
+    "醫學物理學",
+  ],
+};
+
 function readSiteData() {
   const source = fs.readFileSync(siteDataPath, "utf8");
   return JSON.parse(source.slice(source.indexOf("{"), source.lastIndexOf("}") + 1));
@@ -108,6 +123,7 @@ async function main() {
         questions.push({
           id: `${section.section}.${item.item}`,
           label: `Q${section.section}.${item.item}`,
+          section: section.section,
           knowledgeQuestion: section.section,
           kind: "multiple-choice",
           question: sharedStemPath ? [sharedStemPath, imagePath] : [imagePath],
@@ -124,6 +140,7 @@ async function main() {
       questions.push({
         id: `${section.section}.S`,
         label: edition.language === "eng" ? `Q${section.section} · Structured` : `Q${section.section} · 大題`,
+        section: section.section,
         knowledgeQuestion: section.section,
         kind: "structured",
         question: structuredPages,
@@ -134,6 +151,11 @@ async function main() {
     paper.description = edition.language === "eng"
       ? "32 multiple-choice questions and 4 structured questions"
       : "32 道選擇題及 4 道大題";
+    paper.sections = sectionTitles[edition.language].map((title, index) => ({
+      id: index + 1,
+      label: edition.language === "eng" ? `Section ${index + 1}` : `第 ${index + 1} 卷`,
+      title,
+    }));
     paper.questions = questions;
   }
 

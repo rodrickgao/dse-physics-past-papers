@@ -13,7 +13,7 @@
         : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     } catch { document.documentElement.dataset.theme = "light"; }
   </script>
-  <link rel="stylesheet" href="styles.css?v=20260813-2">
+  <link rel="stylesheet" href="styles.css?v=20260815-1">
 </head>
 <body>
   <header class="hero">
@@ -103,6 +103,10 @@
           <div class="nav-section">
             <p class="nav-label" data-paper-label="paper">PAPER</p>
             <div id="paper-list" class="paper-list"></div>
+          </div>
+          <div id="paper2-section-nav" class="nav-section" hidden>
+            <p class="nav-label" data-paper-label="section">SECTION</p>
+            <div id="paper2-section-list" class="paper2-section-list"></div>
           </div>
           <div class="nav-section">
             <p class="nav-label" data-paper-label="question">QUESTION / PAGE</p>
@@ -245,7 +249,8 @@
   <script src="site-data.js"></script>
   <script src="textbook-data.js?v=20260813-2"></script>
   <script src="knowledge-network-data.js"></script>
+  <script src="paper2-knowledge-data.js?v=20260815-1"></script>
   <script src="statistics-data.js"></script>
-  <script src="app.js?v=20260813-5"></script>
+  <script src="app.js?v=20260815-1"></script>
 </body>
 </html>

@@ -353,7 +353,7 @@ button:active:not(:disabled), .quick-result:active, .paper-search-result:active,
   letter-spacing: .13em;
 }
 
-.year-list, .paper-list, .question-list,
+.year-list, .paper-list, .paper2-section-list, .question-list,
 .book-list, .chapter-list {
   display: grid;
   gap: 7px;
@@ -372,6 +372,11 @@ button:active:not(:disabled), .quick-result:active, .paper-search-result:active,
 
 .year-list .nav-button { padding: 9px 6px; font-size: .84rem; font-weight: 800; }
 .paper-list .nav-button { padding: 9px 10px; text-align: left; font-size: .84rem; font-weight: 750; }
+.paper2-section-list { grid-template-columns: 1fr; }
+.paper2-section-list .section-nav-button { display: grid; gap: 2px; width: 100%; padding: 9px 10px; text-align: left; }
+.paper2-section-list .section-nav-button strong { font-size: .78rem; }
+.paper2-section-list .section-nav-button small { color: var(--muted); font-size: .68rem; line-height: 1.35; }
+.paper2-section-list .section-nav-button.active small { color: currentColor; opacity: .82; }
 .question-list .nav-button { min-height: 35px; padding: 5px 2px; font-size: .72rem; }
 .nav-button:hover { border-color: #abc4f4; }
 .nav-button.active {
@@ -1083,6 +1088,7 @@ button:active:not(:disabled), .quick-result:active, .paper-search-result:active,
   .navigator { position: static; max-height: none; }
   .year-list { grid-template-columns: repeat(4, 1fr); }
   .paper-list { grid-template-columns: repeat(2, 1fr); }
+  .paper2-section-list { grid-template-columns: repeat(2, 1fr); }
   .question-list { grid-template-columns: repeat(6, 1fr); }
   .book-list { grid-template-columns: repeat(3, 1fr); }
   .book-button { align-items: flex-start; }

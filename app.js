@@ -3,7 +3,10 @@
 
   const paperData = window.DSE_SITE_DATA;
   const textbookData = window.DSE_TEXTBOOK_DATA;
-  const knowledgeNetwork = window.DSE_KNOWLEDGE_NETWORK || {};
+  const knowledgeNetwork = {
+    ...(window.DSE_KNOWLEDGE_NETWORK || {}),
+    ...(window.DSE_PAPER2_KNOWLEDGE || {}),
+  };
   const statistics = window.DSE_STATISTICS || {};
   const MISTAKE_STORAGE_KEY = "dse-physics-mistakes-v1";
   const THEME_STORAGE_KEY = "dse-physics-theme-v1";
@@ -124,6 +127,7 @@
     year: 0,
     paper: 0,
     question: 0,
+    paper2Section: 1,
     book: 0,
     textbookDirectory: true,
     chapter: "all",
@@ -150,6 +154,7 @@
       hideAnswer: "Hide answer",
       year: "YEAR",
       paper: "PAPER",
+      sectionNav: "PAPER 2 SECTION",
       questionNav: "QUESTION / PAGE",
       books: "9 BOOKS",
       chapters: "CHAPTERS",
@@ -200,6 +205,7 @@
       hideAnswer: "收起答案",
       year: "年份",
       paper: "试卷",
+      sectionNav: "卷二分卷",
       questionNav: "题号／页码",
       books: "9 册课本",
       chapters: "分章",
@@ -364,6 +370,18 @@
     return Number(question.knowledgeQuestion) || questionNumber(question, fallbackIndex);
   }
 
+  function paper2SectionNumber(question, fallbackIndex = 0) {
+    return Number(question?.section)
+      || Number(String(question?.id || "").split(".")[0])
+      || Math.floor(fallbackIndex / 9) + 1;
+  }
+
+  function knowledgeNetworkForQuestion(year, paperIndex, question, fallbackIndex) {
+    const individual = knowledgeNetwork[networkKey(year, paperIndex, questionIdentity(question, fallbackIndex))];
+    if (individual) return individual;
+    return knowledgeNetwork[networkKey(year, paperIndex, knowledgeQuestionNumber(question, fallbackIndex))];
+  }
+
   const paperEntriesByLanguage = Object.fromEntries(
     Object.entries(yearsByLanguage).map(([language, years]) => {
       const entries = [];
@@ -371,7 +389,7 @@
         year.papers.slice(0, 3).forEach((paper, paperIndex) => {
           paper.questions.forEach((question, questionIndex) => {
             const number = knowledgeQuestionNumber(question, questionIndex);
-            const network = knowledgeNetwork[networkKey(year.year, paperIndex, number)];
+            const network = knowledgeNetworkForQuestion(year.year, paperIndex, question, questionIndex);
             if (!network) return;
             const key = networkKey(year.year, paperIndex, questionIdentity(question, questionIndex));
             const primary = network.links.find((link) => link.type === "primary") || network.links[0];
@@ -467,6 +485,8 @@
     state.year = Number(button.dataset.yearIndex);
     state.paper = Number(button.dataset.paperIndex);
     state.question = Number(button.dataset.questionIndex);
+    const paper = visibleYears()[state.year]?.papers[state.paper];
+    if (state.paper === 2 && paper) state.paper2Section = paper2SectionNumber(paper.questions[state.question], state.question);
     state.library = "papers";
     updateTopLevel();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -516,6 +536,7 @@
     state.year = entry.yearIndex;
     state.paper = entry.paperIndex;
     state.question = entry.questionIndex;
+    if (state.paper === 2) state.paper2Section = paper2SectionNumber(entry.question, entry.questionIndex);
     state.library = "papers";
     updateTopLevel();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -592,8 +613,7 @@
 
   function renderRelatedKnowledge(year, paper, question) {
     const labels = currentCopy();
-    const number = knowledgeQuestionNumber(question, state.question);
-    const network = knowledgeNetwork[networkKey(year.year, state.paper, number)];
+    const network = knowledgeNetworkForQuestion(year.year, state.paper, question, state.question);
     const panel = element("related-knowledge");
     if (!network) {
       panel.hidden = true;
@@ -667,15 +687,37 @@
     element("collection-status").textContent = `${labels.collectionPapers} · ${years.length} years`;
     element("year-list").innerHTML = navButtons(years, state.year, "year");
     element("paper-list").innerHTML = navButtons(year.papers, state.paper, paperTitle);
-    element("question-list").innerHTML = navButtons(paper.questions, state.question, "label");
+    const isPaper2 = state.paper === 2 && Array.isArray(paper.sections);
+    if (isPaper2) state.paper2Section = paper2SectionNumber(question, state.question);
+    element("paper2-section-nav").hidden = !isPaper2;
+    if (isPaper2) {
+      element("paper2-section-list").innerHTML = paper.sections.map((section) => `
+        <button type="button" class="nav-button section-nav-button ${Number(section.id) === state.paper2Section ? "active" : ""}" data-section="${section.id}">
+          <strong>${escapeHtml(section.label)}</strong><small>${escapeHtml(section.title)}</small>
+        </button>
+      `).join("");
+      element("question-list").innerHTML = indexedNavButtons(paper2QuestionIndices(paper), state.question, "label");
+    } else {
+      element("paper2-section-list").innerHTML = "";
+      element("question-list").innerHTML = navButtons(paper.questions, state.question, "label");
+    }
     document.querySelector('[data-paper-label="year"]').textContent = labels.year;
     document.querySelector('[data-paper-label="paper"]').textContent = labels.paper;
+    document.querySelector('[data-paper-label="section"]').textContent = labels.sectionNav;
     document.querySelector('[data-paper-label="question"]').textContent = labels.questionNav;
 
     const title = paperTitle(paper, state.paper);
-    element("breadcrumb").textContent = `${state.language === "eng" ? "ENG" : "中文"} · ${year.year} · ${title}`;
+    const activeSection = isPaper2 ? paper.sections.find((section) => Number(section.id) === state.paper2Section) : null;
+    element("breadcrumb").textContent = [
+      state.language === "eng" ? "ENG" : "中文",
+      year.year,
+      title,
+      activeSection ? `${activeSection.label} · ${activeSection.title}` : "",
+    ].filter(Boolean).join(" · ");
     element("item-title").textContent = question.label;
-    element("paper-description").textContent = paperDescription(paper, state.paper);
+    element("paper-description").textContent = activeSection
+      ? `${activeSection.label} · ${activeSection.title} · ${state.language === "eng" ? "8 multiple-choice questions and 1 structured question" : "8 道選擇題及 1 道大題"}`
+      : paperDescription(paper, state.paper);
     element("question-heading").textContent = labels.question;
     element("answer-heading").textContent = labels.answer;
     element("question-images").innerHTML =
@@ -705,8 +747,12 @@
     element("mistake-toggle").querySelector(".mistake-toggle-icon").textContent = isMarked ? "★" : "☆";
     element("mistake-toggle-label").textContent = isMarked ? mistakeLabels.marked : mistakeLabels.mark;
 
-    element("previous-button").disabled = state.question === 0;
-    element("next-button").disabled = state.question === paper.questions.length - 1;
+    const visibleQuestionIndices = isPaper2
+      ? paper2QuestionIndices(paper).map(({ index }) => index)
+      : paper.questions.map((_, index) => index);
+    const visiblePosition = visibleQuestionIndices.indexOf(state.question);
+    element("previous-button").disabled = visiblePosition <= 0;
+    element("next-button").disabled = visiblePosition < 0 || visiblePosition === visibleQuestionIndices.length - 1;
   }
 
   function textbookPoints() {
@@ -748,6 +794,20 @@
       ]),
     ].join(" "));
     return searchable(query).split(" ").filter(Boolean).every((term) => haystack.includes(term));
+  }
+
+  function indexedNavButtons(items, activeIndex, label, className = "") {
+    return items.map(({ item, index }) => {
+      const text = typeof label === "function" ? label(item, index) : item[label];
+      return `<button type="button" class="nav-button ${className} ${index === activeIndex ? "active" : ""}" ` +
+        `data-index="${index}">${escapeHtml(text)}</button>`;
+    }).join("");
+  }
+
+  function paper2QuestionIndices(paper, section = state.paper2Section) {
+    return paper.questions
+      .map((item, index) => ({ item, index }))
+      .filter(({ item, index }) => paper2SectionNumber(item, index) === Number(section));
   }
 
   function pointCard(point) {
@@ -1184,10 +1244,17 @@
     state.year = Number(button.dataset.index);
     state.paper = 0;
     state.question = 0;
+    state.paper2Section = 1;
   });
   bindList("paper-list", "[data-index]", (button) => {
     state.paper = Number(button.dataset.index);
     state.question = 0;
+    state.paper2Section = 1;
+  });
+  bindList("paper2-section-list", "[data-section]", (button) => {
+    state.paper2Section = Number(button.dataset.section);
+    const { paper } = currentPaper();
+    state.question = paper2QuestionIndices(paper, state.paper2Section)[0]?.index || 0;
   });
   bindList("question-list", "[data-index]", (button) => {
     state.question = Number(button.dataset.index);
@@ -1207,16 +1274,25 @@
   });
 
   element("previous-button").addEventListener("click", () => {
-    if (state.question > 0) {
-      state.question -= 1;
+    const { paper } = currentPaper();
+    const indices = state.paper === 2 && Array.isArray(paper.sections)
+      ? paper2QuestionIndices(paper).map(({ index }) => index)
+      : paper.questions.map((_, index) => index);
+    const position = indices.indexOf(state.question);
+    if (position > 0) {
+      state.question = indices[position - 1];
       renderPapers();
       window.scrollTo({ top: 0, behavior: "auto" });
     }
   });
   element("next-button").addEventListener("click", () => {
     const { paper } = currentPaper();
-    if (state.question < paper.questions.length - 1) {
-      state.question += 1;
+    const indices = state.paper === 2 && Array.isArray(paper.sections)
+      ? paper2QuestionIndices(paper).map(({ index }) => index)
+      : paper.questions.map((_, index) => index);
+    const position = indices.indexOf(state.question);
+    if (position >= 0 && position < indices.length - 1) {
+      state.question = indices[position + 1];
       renderPapers();
       window.scrollTo({ top: 0, behavior: "auto" });
     }
