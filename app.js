@@ -356,18 +356,28 @@
     return Number(String(question.label).replace(/\D/g, "")) || fallbackIndex + 1;
   }
 
+  function questionIdentity(question, fallbackIndex) {
+    return String(question.id || questionNumber(question, fallbackIndex));
+  }
+
+  function knowledgeQuestionNumber(question, fallbackIndex) {
+    return Number(question.knowledgeQuestion) || questionNumber(question, fallbackIndex);
+  }
+
   const paperEntriesByLanguage = Object.fromEntries(
     Object.entries(yearsByLanguage).map(([language, years]) => {
       const entries = [];
       years.forEach((year, yearIndex) => {
         year.papers.slice(0, 3).forEach((paper, paperIndex) => {
           paper.questions.forEach((question, questionIndex) => {
-            const number = questionNumber(question, questionIndex);
+            const number = knowledgeQuestionNumber(question, questionIndex);
             const network = knowledgeNetwork[networkKey(year.year, paperIndex, number)];
             if (!network) return;
+            const key = networkKey(year.year, paperIndex, questionIdentity(question, questionIndex));
             const primary = network.links.find((link) => link.type === "primary") || network.links[0];
             entries.push({
               year, yearIndex, paper, paperIndex, question, questionIndex,
+              key,
               questionNumber: number,
               network,
               chapter: primary ? (language === "eng" ? primary.chapterEn : primary.chapterZh) : "",
@@ -382,7 +392,7 @@
     Object.entries(paperEntriesByLanguage).map(([language, entries]) => [
       language,
       new Map(entries.map((entry) => [
-        networkKey(entry.year.year, entry.paperIndex, entry.questionNumber),
+        entry.key,
         entry,
       ])),
     ])
@@ -463,10 +473,12 @@
   }
 
   const questionsByKnowledge = new Map();
-  Object.entries(knowledgeNetwork).forEach(([key, item]) => {
-    (item.links || []).forEach((link) => {
+  Object.values(paperEntriesByLanguage).flat().forEach((entry) => {
+    (entry.network.links || []).forEach((link) => {
       if (!questionsByKnowledge.has(link.sequence)) questionsByKnowledge.set(link.sequence, []);
-      questionsByKnowledge.get(link.sequence).push(key);
+      if (!questionsByKnowledge.get(link.sequence).includes(entry.key)) {
+        questionsByKnowledge.get(link.sequence).push(entry.key);
+      }
     });
   });
 
@@ -482,9 +494,8 @@
 
   function currentQuestionKey() {
     const { year, question } = currentPaper();
-    const number = questionNumber(question, state.question);
-    const key = networkKey(year.year, state.paper, number);
-    return key && knowledgeNetwork[key] ? key : "";
+    const key = networkKey(year.year, state.paper, questionIdentity(question, state.question));
+    return paperEntryForKey(key) ? key : "";
   }
 
   function paperEntryForKey(key) {
@@ -492,7 +503,7 @@
   }
 
   function setMistake(key, marked) {
-    if (!key || !knowledgeNetwork[key]) return;
+    if (!key || !paperEntryForKey(key)) return;
     if (marked) mistakes[key] = { markedAt: new Date().toISOString() };
     else delete mistakes[key];
     mistakeEntriesCache = null;
@@ -555,13 +566,14 @@
 
   function paperTitle(paper, index) {
     if (state.language === "eng") return paper.title;
-    const isReport = !paper.questions.some((question) => /^Q\d+$/i.test(question.label));
+    const isReport = index > 2;
     if (isReport) return "考生表现报告";
     return ["卷一甲部", "卷一乙部", "卷二"][index] || `试卷 ${index + 1}`;
   }
 
   function paperDescription(paper, index) {
-    const isReport = !paper.questions.some((question) => /^Q\d+$/i.test(question.label));
+    const isReport = index > 2;
+    if (!isReport && paper.description && index === 2) return paper.description;
     if (state.language === "eng") {
       if (isReport) return "Official report";
       return index === 0 ? `${paper.questions.length} questions` : `${paper.questions.length} question groups`;
@@ -580,7 +592,7 @@
 
   function renderRelatedKnowledge(year, paper, question) {
     const labels = currentCopy();
-    const number = questionNumber(question, state.question);
+    const number = knowledgeQuestionNumber(question, state.question);
     const network = knowledgeNetwork[networkKey(year.year, state.paper, number)];
     const panel = element("related-knowledge");
     if (!network) {
@@ -1010,7 +1022,7 @@
     return {
       year: String(year.year),
       paper: paperIdAt(state.paper),
-      question: questionNumber(question, state.question),
+      question: questionIdentity(question, state.question),
     };
   }
 
@@ -1025,7 +1037,7 @@
       : Math.min(state.paper, year.papers.length - 1);
     const paper = year.papers[state.paper];
     const questionIndex = paper.questions.findIndex((question, index) => (
-      questionNumber(question, index) === identity.question
+      questionIdentity(question, index) === String(identity.question)
     ));
     state.question = questionIndex >= 0
       ? questionIndex
