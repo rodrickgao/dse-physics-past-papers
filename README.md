@@ -1,21 +1,21 @@
 # DSE Physics Past Papers
 
-Private source repository for the DSE Physics past-paper study website.
+Source repository for the DSE Physics past-paper study website.
 
 ## Open the website
 
-**[Open DSE Physics Study Library on Cloudflare](https://dse-physics-past-papers.rodrickgao.workers.dev/)**
+**[Open the public DSE Physics Study Library](https://rodrickgao.github.io/dse-physics-past-papers/)**
 
-Visitors will be asked for the invite code before entering the study library.
+The GitHub Pages website is public and does not require an invite code.
 
 ## Publishing flow
 
-Run `部署到GitHub和Cloudflare.cmd` after committing a change. It validates the
-website, pushes `main` to the private GitHub repository, and then deploys the
-same commit to Cloudflare Workers. The command stops on the first error so the
-two destinations cannot silently drift apart.
+Every push to `main` automatically publishes the current static website to
+GitHub Pages. The existing `部署到GitHub和Cloudflare.cmd` helper can still be
+used when the private Cloudflare copy also needs to be updated.
 
 ## Security
 
-The invite code and session-signing key are stored as encrypted Cloudflare
-secrets. They are never committed to this repository.
+The GitHub Pages copy contains only static website files. The Cloudflare invite
+code and session-signing key remain encrypted Cloudflare secrets and are never
+committed to this repository.

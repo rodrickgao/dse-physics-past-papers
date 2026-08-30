@@ -705,6 +705,10 @@ button:active:not(:disabled), .quick-result:active, .paper-search-result:active,
 .knowledge-content p { margin: 0; }
 .knowledge-content p + p { margin-top: .72em; }
 .content-gap { display: block; height: .72em; }
+.knowledge-prose-list { margin: .65em 0 0; padding-left: 1.35em; }
+.knowledge-prose-list:first-child { margin-top: 0; }
+.knowledge-prose-list li { padding-left: .18em; }
+.knowledge-prose-list li + li { margin-top: .45em; }
 .formula-block {
   display: grid;
   gap: 15px;
@@ -992,7 +996,7 @@ button:active:not(:disabled), .quick-result:active, .paper-search-result:active,
   box-shadow: 0 7px 24px rgba(26, 44, 72, .06);
 }
 .mistake-kpis strong { display: block; color: var(--red-dark); font-size: clamp(1.35rem, 2.8vw, 2rem); line-height: 1.15; }
-.mistake-kpis article:last-child strong { font-size: clamp(.95rem, 1.8vw, 1.3rem); }
+.mistake-kpis article:last-child strong { font-size: clamp(.78rem, 1.35vw, 1.02rem); line-height: 1.45; white-space: pre-line; }
 .mistake-kpis span { display: block; margin-top: 4px; color: var(--muted); font-size: .7rem; font-weight: 750; }
 .mistake-analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
 .mistake-panel { border: 1px solid var(--line); border-radius: 17px; background: #fff; box-shadow: var(--shadow); }
@@ -1022,6 +1026,15 @@ button:active:not(:disabled), .quick-result:active, .paper-search-result:active,
 .mistake-list-panel { margin-bottom: 30px; }
 .mistake-list-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding: 18px 20px 12px; }
 .mistake-list-heading h3 { margin: 3px 0 0; font-size: 1.05rem; }
+.mistake-pdf-actions { display: grid; justify-items: end; gap: 5px; }
+.mistake-pdf-actions small { color: var(--muted); font-size: .62rem; font-weight: 750; }
+.mistake-pdf-button { display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 9px; padding: 9px 12px; background: var(--red-dark); color: #fff; font-size: .72rem; font-weight: 900; cursor: pointer; box-shadow: 0 7px 18px rgba(143, 42, 55, .18); }
+.mistake-pdf-button:hover { background: #792430; transform: translateY(-1px); }
+.mistake-pdf-button:disabled { opacity: .48; cursor: not-allowed; box-shadow: none; transform: none; }
+.mistake-pdf-button.busy { min-width: 160px; justify-content: center; }
+.mistake-pdf-icon { display: grid; min-width: 30px; height: 21px; place-items: center; border-radius: 5px; background: rgba(255,255,255,.17); font-size: .56rem; letter-spacing: .06em; }
+.mistake-pdf-status { margin: 0 20px 12px; border: 1px solid #e7cbd0; border-radius: 9px; padding: 9px 11px; background: #fff7f8; color: var(--red-dark); font-size: .68rem; line-height: 1.45; }
+.mistake-print-frame { position: fixed; inset: auto 0 0 auto; width: 1px; height: 1px; border: 0; opacity: 0; pointer-events: none; }
 .mistake-search { display: flex; align-items: center; gap: 8px; width: min(420px, 44vw); border: 1px solid #ccd6e4; border-radius: 10px; padding: 0 11px; background: #fff; color: var(--muted); }
 .mistake-search:focus-within { border-color: #d4919b; box-shadow: 0 0 0 3px rgba(196, 59, 77, .09); }
 .mistake-search input { width: 100%; border: 0; outline: 0; padding: 10px 0; color: var(--ink); }
@@ -1108,6 +1121,9 @@ button:active:not(:disabled), .quick-result:active, .paper-search-result:active,
   .mistake-report-heading > p { text-align: left; }
   .mistake-analysis-grid { grid-template-columns: 1fr; }
   .mistake-list-heading { align-items: stretch; flex-direction: column; }
+  .mistake-pdf-actions { justify-items: stretch; }
+  .mistake-pdf-button { justify-content: center; }
+  .mistake-pdf-actions small { text-align: center; }
   .mistake-search { width: 100%; }
 }
 
@@ -1564,6 +1580,8 @@ body.home-mode .collection-status { display: none; }
 [data-theme="dark"] .mistake-point-questions button { border-color: #434953; background: #24282e; color: #d4dae3; }
 [data-theme="dark"] .general-advice,
 [data-theme="dark"] .remove-mistake { background: #42282d; color: #f1b2ba; }
+[data-theme="dark"] .mistake-pdf-button { background: #bd5967; color: #fff; }
+[data-theme="dark"] .mistake-pdf-status { border-color: #594047; background: #2b2024; color: #f1b2ba; }
 
 /* Dark theme contrast pass
    Keep text and the surface immediately behind it in the same contrast system.

@@ -67,6 +67,54 @@
     </section>`;
   }
 
+  function joinWrappedContent(left, right) {
+    if (/[A-Za-z]-$/.test(left) && /^[a-z]/.test(right)) return `${left.slice(0, -1)}${right}`;
+    const joinsCjk = /[\u3400-\u9fff]$/.test(left) && /^[\u3400-\u9fff]/.test(right);
+    return `${left}${joinsCjk ? "" : " "}${right}`;
+  }
+
+  function contentBlocks(value) {
+    const lines = String(value || "").split("\n").map((line) => line.trim());
+    const blocks = [];
+    let paragraph = "";
+    let list = null;
+    const flushParagraph = () => {
+      if (paragraph) blocks.push({ type: "paragraph", text: paragraph });
+      paragraph = "";
+    };
+    const flushList = () => {
+      if (list?.items.length) blocks.push(list);
+      list = null;
+    };
+
+    for (const line of lines) {
+      if (!line) {
+        flushParagraph();
+        flushList();
+        continue;
+      }
+      const bullet = line.match(/^[•●▪]\s*(.+)$/);
+      const numbered = line.match(/^(\d+)[.)]?\s+(.+)$/);
+      if (bullet || numbered) {
+        flushParagraph();
+        const type = bullet ? "unordered" : "ordered";
+        if (list && list.type !== type) flushList();
+        if (!list) list = { type, items: [] };
+        list.items.push((bullet || numbered)[bullet ? 1 : 2]);
+        continue;
+      }
+      if (list) {
+        const lastIndex = list.items.length - 1;
+        list.items[lastIndex] = joinWrappedContent(list.items[lastIndex], line);
+      } else {
+        paragraph = paragraph ? joinWrappedContent(paragraph, line) : line;
+      }
+    }
+    flushParagraph();
+    flushList();
+    return blocks;
+  }
+
   function regularContentMarkup(point) {
     const lines = String(point.content).split("\n");
     if (point.category_code === "3" && lines.length > 1) {
@@ -80,17 +128,19 @@
         </section>`;
       }
     }
-    return lines.map((line) => line.trim()
-      ? `<p>${mathMarkup(line)}</p>`
-      : '<span class="content-gap" aria-hidden="true"></span>').join("");
+    return contentBlocks(point.content).map((block) => {
+      if (block.type === "paragraph") return `<p>${mathMarkup(block.text)}</p>`;
+      const tag = block.type === "ordered" ? "ol" : "ul";
+      return `<${tag} class="knowledge-prose-list">${block.items.map((item) => `<li>${mathMarkup(item)}</li>`).join("")}</${tag}>`;
+    }).join("");
   }
 
   function knowledgeContentMarkup(point) {
-    return point.formula ? formulaMarkup(point) : regularContentMarkup(point);
+    return point.formula && point.display_mode !== "prose" ? formulaMarkup(point) : regularContentMarkup(point);
   }
 
   function copyTextForPoint(point) {
-    return point.formula
+    return point.formula && point.display_mode !== "prose"
       ? [point.formula, point.formula_notes].filter(Boolean).join("\n")
       : point.content;
   }
@@ -251,11 +301,11 @@
       marked: "In mistake book",
       remove: "Remove",
       heading: "Marked questions",
-      description: "Review each original question and focus on your weakest chapter.",
+      description: "Review each original question and focus on your three weakest chapters.",
       browse: "Browse past papers",
       wrongQuestions: "Wrong questions",
       knowledgePoints: "Knowledge points involved",
-      weakestChapter: "Weakest chapter",
+      weakestChapter: "Weakest chapters",
       weakChapterKicker: "WEAK CHAPTERS",
       weakChapterTitle: "Mistakes by chapter",
       weakPointKicker: "WEAK KNOWLEDGE",
@@ -280,6 +330,11 @@
       noSearch: "No marked question matches this search.",
       open: "Open question",
       times: "wrong questions",
+      downloadPdf: "Download PDF",
+      pdfOrder: "Compulsory 1-5 · Elective 1-4",
+      pdfBuilding: "Building PDF: {current}/{total}",
+      pdfPrintFallback: "The print dialog is ready. Choose ‘Save as PDF’ to download the file.",
+      pdfFailed: "The PDF could not be prepared. Please try again.",
     },
     chn: {
       hero: "我的错题库",
@@ -288,11 +343,11 @@
       marked: "已加入错题库",
       remove: "移除",
       heading: "错题库",
-      description: "直接查看每道错题的原题，并集中复习薄弱章节。",
+      description: "直接查看每道错题的原题，并集中复习三个最薄弱章节。",
       browse: "浏览真题库",
       wrongQuestions: "错题总数",
       knowledgePoints: "涉及知识点",
-      weakestChapter: "最薄弱章节",
+      weakestChapter: "三个最薄弱章节",
       weakChapterKicker: "薄弱章节",
       weakChapterTitle: "各章节错题数量",
       weakPointKicker: "薄弱知识点",
@@ -317,8 +372,18 @@
       noSearch: "没有符合搜索条件的错题。",
       open: "打开题目",
       times: "道错题",
+      downloadPdf: "下载错题 PDF",
+      pdfOrder: "必修 1-5 · 选修 1-4",
+      pdfBuilding: "正在生成 PDF：{current}/{total}",
+      pdfPrintFallback: "已打开打印窗口，请选择“另存为 PDF”下载文件。",
+      pdfFailed: "暂时无法生成 PDF，请重试。",
     },
   };
+
+  const mistakePdfBookKeys = [
+    "compulsory-1", "compulsory-2", "compulsory-3", "compulsory-4", "compulsory-5",
+    "elective-1", "elective-2", "elective-3", "elective-4",
+  ];
 
   const bookOrder = {
     eng: [
@@ -832,7 +897,7 @@
             ${labels.copy}
           </button>
         </div>
-        <div class="knowledge-content ${point.formula || point.category_code === "3" ? "has-formula" : ""}">${knowledgeContentMarkup(point)}</div>
+        <div class="knowledge-content ${(point.formula && point.display_mode !== "prose") || point.category_code === "3" ? "has-formula" : ""}">${knowledgeContentMarkup(point)}</div>
         ${questionSection}
       </article>`;
   }
@@ -926,6 +991,183 @@
     return entries;
   }
 
+  function mistakeBookKey(item) {
+    const links = item.network?.links || [];
+    const primary = links.find((link) => link.type === "primary" && mistakePdfBookKeys.includes(link.bookKey));
+    return primary?.bookKey
+      || links.find((link) => mistakePdfBookKeys.includes(link.bookKey))?.bookKey
+      || window.DSE_MISTAKE_PDF?.ENTRY_OVERRIDES?.[item.key]?.bookKey
+      || "";
+  }
+
+  function sortedMistakeEntriesForPdf(entries) {
+    const collator = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
+    return entries
+      .map((item) => ({ ...item, bookKey: mistakeBookKey(item) }))
+      .filter((item) => item.bookKey)
+      .sort((a, b) => {
+        const bookDifference = mistakePdfBookKeys.indexOf(a.bookKey) - mistakePdfBookKeys.indexOf(b.bookKey);
+        if (bookDifference) return bookDifference;
+        const yearDifference = Number(a.entry.year.year) - Number(b.entry.year.year);
+        if (yearDifference) return yearDifference;
+        const paperDifference = a.entry.paperIndex - b.entry.paperIndex;
+        if (paperDifference) return paperDifference;
+        return collator.compare(
+          questionIdentity(a.entry.question, a.entry.questionIndex),
+          questionIdentity(b.entry.question, b.entry.questionIndex),
+        );
+      });
+  }
+
+  async function loadMistakePdfImage(source) {
+    try {
+      const response = await window.fetch(source);
+      if (!response.ok && response.status !== 0) throw new Error(`Image request failed: ${response.status}`);
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      if (!bytes.length) throw new Error("Image request returned no data.");
+      return bytes;
+    } catch (fetchError) {
+      return new Promise((resolve, reject) => {
+        const request = new XMLHttpRequest();
+        request.open("GET", source, true);
+        request.responseType = "arraybuffer";
+        request.onload = () => {
+          const bytes = new Uint8Array(request.response || new ArrayBuffer(0));
+          if (bytes.length) resolve(bytes);
+          else reject(fetchError);
+        };
+        request.onerror = () => reject(fetchError);
+        request.send();
+      });
+    }
+  }
+
+  function mistakePdfEntries(entries) {
+    return sortedMistakeEntriesForPdf(entries).map((item) => {
+      const primary = (item.network.links || []).find((link) => link.type === "primary") || item.network.links?.[0];
+      const override = window.DSE_MISTAKE_PDF?.ENTRY_OVERRIDES?.[item.key];
+      return {
+        bookKey: item.bookKey,
+        title: questionKeyLabel(item.key).replaceAll("·", "-"),
+        chapterEn: primary?.chapterEn || override?.chapterEn || "",
+        images: item.entry.question.question.map((path) => imageUrl(item.entry.year.id, path)),
+      };
+    });
+  }
+
+  function mistakePdfFilename() {
+    const now = new Date();
+    const date = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, "0"),
+      String(now.getDate()).padStart(2, "0"),
+    ].join("-");
+    return `DSE-Physics-Mistake-Book-${date}.pdf`;
+  }
+
+  function downloadBytes(bytes, filename) {
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  function printMistakeBook(entries) {
+    const labels = currentMistakeCopy();
+    const sections = window.DSE_MISTAKE_PDF?.BOOK_SECTIONS || [];
+    const sectionLabels = state.language === "eng"
+      ? mistakePdfBookKeys.map((_, index) => `Compulsory Book ${index + 1}`).slice(0, 5)
+        .concat([1, 2, 3, 4].map((number) => `Elective Book ${number}`))
+      : ["必修第一册", "必修第二册", "必修第三册", "必修第四册", "必修第五册", "选修第一册", "选修第二册", "选修第三册", "选修第四册"];
+    const sorted = sortedMistakeEntriesForPdf(entries);
+    const frame = document.createElement("iframe");
+    frame.className = "mistake-print-frame";
+    frame.setAttribute("aria-hidden", "true");
+    document.body.append(frame);
+    const printDocument = frame.contentDocument;
+    const content = mistakePdfBookKeys.map((bookKey, sectionIndex) => {
+      const sectionEntries = sorted.filter((item) => item.bookKey === bookKey);
+      if (!sectionEntries.length) return "";
+      return `<section class="book-section">
+        <h1><b>${escapeHtml(sections[sectionIndex]?.code || bookKey)}</b>${escapeHtml(sectionLabels[sectionIndex])}</h1>
+        ${sectionEntries.map((item) => {
+          const title = questionKeyLabel(item.key);
+          const primary = (item.network.links || []).find((link) => link.type === "primary") || item.network.links?.[0];
+          const override = window.DSE_MISTAKE_PDF?.ENTRY_OVERRIDES?.[item.key];
+          const chapter = state.language === "eng"
+            ? primary?.chapterEn || override?.chapterEn
+            : primary?.chapterZh || override?.chapterZh;
+          return `<article class="print-question"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(chapter || "")}</p>${item.entry.question.question.map((path) => `<img src="${escapeHtml(new URL(imageUrl(item.entry.year.id, path), window.location.href).href)}" alt="${escapeHtml(title)}">`).join("")}</article>`;
+        }).join("")}
+      </section>`;
+    }).join("");
+    printDocument.open();
+    printDocument.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(labels.downloadPdf)}</title><style>
+      @page { size: A4; margin: 12mm; }
+      * { box-sizing: border-box; }
+      body { margin: 0; color: #162033; font-family: Arial, "Microsoft JhengHei", sans-serif; }
+      .book-section { break-before: page; }
+      .book-section:first-child { break-before: auto; }
+      h1 { display: flex; align-items: center; gap: 10px; margin: 0 0 8mm; padding: 4mm 5mm; background: #245aa8; color: white; font-size: 17pt; }
+      h1 b { display: grid; width: 9mm; height: 9mm; place-items: center; border-radius: 50%; background: rgba(255,255,255,.2); font-size: 9pt; }
+      .print-question { break-inside: avoid; margin: 0 0 6mm; padding: 0 0 5mm; border-bottom: .3mm solid #d9dee7; }
+      .print-question h2 { margin: 0 0 1mm; font-size: 11pt; }
+      .print-question p { margin: 0 0 3mm; color: #677083; font-size: 7.5pt; }
+      .print-question img { display: block; max-width: 100%; max-height: 235mm; margin: 0 auto 2mm; object-fit: contain; }
+    </style></head><body>${content}</body></html>`);
+    printDocument.close();
+    const images = [...printDocument.images];
+    Promise.all(images.map((image) => image.decode?.().catch(() => undefined))).finally(() => {
+      frame.contentWindow.focus();
+      frame.contentWindow.print();
+      window.setTimeout(() => frame.remove(), 2000);
+    });
+  }
+
+  async function exportMistakeBookPdf() {
+    const button = element("download-mistake-pdf");
+    const label = element("download-mistake-pdf-label");
+    const status = element("mistake-pdf-status");
+    const labels = currentMistakeCopy();
+    const entries = mistakeEntries();
+    if (!entries.length || button.disabled) return;
+    const originalLabel = labels.downloadPdf;
+    button.disabled = true;
+    button.classList.add("busy");
+    status.hidden = true;
+    try {
+      const pdfEntries = mistakePdfEntries(entries);
+      const bytes = await window.DSE_MISTAKE_PDF.createMistakeBookPdf({
+        entries: pdfEntries,
+        loadImageBytes: loadMistakePdfImage,
+        onProgress: ({ current, total }) => {
+          label.textContent = labels.pdfBuilding.replace("{current}", current).replace("{total}", total);
+        },
+      });
+      downloadBytes(bytes, mistakePdfFilename());
+      label.textContent = originalLabel;
+    } catch (error) {
+      console.warn("Direct PDF download was unavailable; using the browser print dialog.", error);
+      label.textContent = originalLabel;
+      status.textContent = labels.pdfPrintFallback;
+      status.hidden = false;
+      try {
+        printMistakeBook(entries);
+      } catch (printError) {
+        console.error(printError);
+        status.textContent = labels.pdfFailed;
+      }
+    } finally {
+      button.disabled = false;
+      button.classList.remove("busy");
+    }
+  }
+
   function mistakeAnalytics(entries) {
     const points = new Map();
     const chapters = new Map();
@@ -973,7 +1215,7 @@
     const labels = currentMistakeCopy();
     const entries = mistakeEntries();
     const analysis = mistakeAnalytics(entries);
-    const topChapter = analysis.chapterRows[0];
+    const topChapters = analysis.chapterRows.slice(0, 3);
 
     updateMistakeBadge();
     element("collection-status").textContent = `${entries.length} ${labels.wrongQuestions}`;
@@ -982,14 +1224,20 @@
     element("browse-for-mistakes").firstChild.textContent = `${labels.browse} `;
     element("mistake-total").textContent = entries.length;
     element("mistake-point-total").textContent = analysis.pointRows.length;
-    element("mistake-top-code").textContent = topChapter
-      ? `${topChapter.code} · ${state.language === "eng" ? topChapter.titleEn : topChapter.titleZh}`
+    element("mistake-top-code").textContent = topChapters.length
+      ? topChapters.map((chapter, index) => (
+        `${index + 1}. ${chapter.code} · ${state.language === "eng" ? chapter.titleEn : chapter.titleZh}`
+      )).join("\n")
       : "—";
     element("mistake-total-label").textContent = labels.wrongQuestions;
     element("mistake-point-label").textContent = labels.knowledgePoints;
     element("mistake-top-code-label").textContent = labels.weakestChapter;
     element("mistake-list-kicker").textContent = labels.listKicker;
     element("mistake-list-title").textContent = labels.listTitle;
+    element("download-mistake-pdf-label").textContent = labels.downloadPdf;
+    element("mistake-pdf-order").textContent = labels.pdfOrder;
+    element("mistake-pdf-status").hidden = true;
+    element("download-mistake-pdf").disabled = entries.length === 0;
     element("mistake-questions-tab").textContent = labels.questionsTab;
     element("mistake-analysis-tab").textContent = labels.analysisTab;
     const showingAnalysis = state.mistakeView === "analysis";
@@ -1246,6 +1494,7 @@
     state.question = 0;
     state.paper2Section = 1;
   });
+  element("download-mistake-pdf").addEventListener("click", exportMistakeBookPdf);
   bindList("paper-list", "[data-index]", (button) => {
     state.paper = Number(button.dataset.index);
     state.question = 0;

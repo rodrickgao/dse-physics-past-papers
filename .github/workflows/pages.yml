@@ -1,0 +1,58 @@
+name: Publish website to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the latest website
+        uses: actions/checkout@v4
+
+      - name: Prepare the public website
+        shell: bash
+        run: |
+          mkdir -p _site
+          cp -R assets vendor _site/
+          cp \
+            index.html \
+            app.js \
+            knowledge-network-data.js \
+            mistake-pdf.js \
+            paper2-knowledge-data.js \
+            site-data.js \
+            statistics-data.js \
+            styles.css \
+            textbook-card-fixes.js \
+            textbook-data.js \
+            _site/
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Publish website
+        id: deployment
+        uses: actions/deploy-pages@v4
