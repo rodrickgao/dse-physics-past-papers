@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="DSE Physics past papers and a bilingual textbook yellow-box knowledge base.">
+  <title>DSE Physics Study Library</title>
+  <script>
+    try {
+      const savedTheme = localStorage.getItem("dse-physics-theme-v1");
+      document.documentElement.dataset.theme = savedTheme === "dark" || savedTheme === "light"
+        ? savedTheme
+        : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    } catch { document.documentElement.dataset.theme = "light"; }
+  </script>
+  <link rel="stylesheet" href="styles.css?v=20260816-4">
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="eyebrow"><span class="atom" aria-hidden="true">Φ</span>DSE PHYSICS</div>
+      <h1 id="hero-title">DSE Physics Study Library</h1>
+      <p id="hero-subtitle">Past papers and textbook core knowledge, organised for focused revision.</p>
+    </div>
+  </header>
+
+  <main>
+    <div class="library-bar">
+      <div class="library-switch" role="tablist" aria-label="Library">
+        <button id="home-tab" type="button" role="tab" data-library="home" aria-selected="true">
+          <span class="tab-icon" aria-hidden="true">⌂</span>
+          <span><strong>主页</strong><small>Search directory</small></span>
+        </button>
+        <button id="papers-tab" type="button" role="tab" data-library="papers" aria-selected="false">
+          <span class="tab-icon" aria-hidden="true">Q</span>
+          <span><strong>真题库</strong><small>Past papers</small></span>
+        </button>
+        <button id="textbook-tab" type="button" role="tab" data-library="textbook" aria-selected="false">
+          <span class="tab-icon book-icon" aria-hidden="true">▤</span>
+          <span><strong>课本知识库</strong><small>Textbook knowledge</small></span>
+        </button>
+        <button id="mistakes-tab" type="button" role="tab" data-library="mistakes" aria-selected="false">
+          <span class="tab-icon mistake-icon" aria-hidden="true">!</span>
+          <span><strong>错题库</strong><small>My mistakes <em id="mistake-count-badge" class="mistake-count-badge">0</em></small></span>
+        </button>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar-actions">
+          <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false">
+            <span id="theme-toggle-icon" aria-hidden="true">◐</span>
+            <span id="theme-toggle-label">暗色</span>
+          </button>
+          <div class="language-switch" aria-label="Content language">
+            <button id="eng-button" type="button" data-language="eng">ENG</button>
+            <button id="chn-button" type="button" data-language="chn">中文</button>
+          </div>
+        </div>
+        <p id="collection-status" class="collection-status" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <section id="home-view" aria-labelledby="home-tab">
+      <div class="home-intro">
+        <p class="breadcrumb">DSE PHYSICS DIRECTORY</p>
+        <h2 id="home-heading">DSE Physics</h2>
+        <p id="home-description">Choose a library to begin.</p>
+      </div>
+      <div class="portal-grid">
+        <button id="open-papers" class="portal-card portal-papers" type="button">
+          <span class="portal-index">01</span>
+          <span class="portal-copy"><strong id="home-paper-title">真题库</strong><small id="home-paper-note">2012–2024 原题与答案</small></span>
+          <span class="portal-meta">619</span><span class="portal-arrow">→</span>
+        </button>
+        <button id="open-textbook" class="portal-card portal-textbook" type="button">
+          <span class="portal-index">02</span>
+          <span class="portal-copy"><strong id="home-knowledge-title">课本知识库</strong><small id="home-knowledge-note">必修 1–5 · 选修 1–4</small></span>
+          <span class="portal-meta">365</span><span class="portal-arrow">→</span>
+        </button>
+        <button id="open-mistakes" class="portal-card portal-mistakes" type="button">
+          <span class="portal-index">03</span>
+          <span class="portal-copy"><strong id="home-mistake-title">错题库</strong><small id="home-mistake-note">个人错题与薄弱点</small></span>
+          <span id="home-mistake-count" class="portal-meta">0</span><span class="portal-arrow">→</span>
+        </button>
+      </div>
+      <p class="home-footnote">619 道真题 · 365 个知识点 · 46 个章节</p>
+    </section>
+
+    <section id="papers-view" aria-labelledby="papers-tab" hidden>
+      <div class="paper-search-panel">
+        <div class="paper-search-copy"><strong id="paper-search-title">Find a question</strong><small id="paper-search-note">Search by year, question number, chapter or concept</small></div>
+        <select id="paper-search-year" aria-label="Year"></select>
+        <input id="paper-search-query" type="search" autocomplete="off" placeholder="e.g. 2021 momentum Q12">
+        <button id="paper-search-clear" type="button" hidden>Clear</button>
+        <div id="paper-search-results" class="paper-search-results" aria-live="polite" hidden></div>
+      </div>
+      <div class="workspace">
+        <aside class="navigator" aria-label="Paper navigation">
+          <div class="nav-section">
+            <p class="nav-label" data-paper-label="year">YEAR</p>
+            <div id="year-list" class="year-list"></div>
+          </div>
+          <div class="nav-section">
+            <p class="nav-label" data-paper-label="paper">PAPER</p>
+            <div id="paper-list" class="paper-list"></div>
+          </div>
+          <div id="paper2-section-nav" class="nav-section" hidden>
+            <p class="nav-label" data-paper-label="section">SECTION</p>
+            <div id="paper2-section-list" class="paper2-section-list"></div>
+          </div>
+          <div class="nav-section">
+            <p class="nav-label" data-paper-label="question">QUESTION / PAGE</p>
+            <div id="question-list" class="question-list"></div>
+          </div>
+        </aside>
+
+        <article class="paper-card">
+          <div class="paper-heading">
+            <p id="breadcrumb" class="breadcrumb"></p>
+            <h2 id="item-title"></h2>
+            <p id="paper-description" class="paper-description"></p>
+          </div>
+
+          <div class="paper-body">
+            <div class="section-heading">
+              <h3 id="question-heading">Question</h3>
+              <div class="question-actions">
+                <button id="mistake-toggle" class="mistake-toggle" type="button" aria-pressed="false">
+                  <span class="mistake-toggle-icon" aria-hidden="true">☆</span>
+                  <span id="mistake-toggle-label">Mark as mistake</span>
+                </button>
+                <div class="step-buttons">
+                  <button id="previous-button" type="button" aria-label="Previous question">←</button>
+                  <button id="next-button" type="button" aria-label="Next question">→</button>
+                </div>
+              </div>
+            </div>
+            <div id="question-images" class="scan-list"></div>
+            <section id="related-knowledge" class="related-knowledge" hidden>
+              <div class="related-heading"><span id="related-title">Related textbook knowledge</span></div>
+              <div id="related-links" class="related-links"></div>
+            </section>
+            <div class="answer-actions">
+            <button id="answer-button" class="answer-button" type="button" aria-expanded="false">
+              <span>Show answer</span><span aria-hidden="true">↓</span>
+            </button>
+            </div>
+            <section id="answer-panel" class="answer-panel" hidden>
+              <h3 id="answer-heading">Answer / Marking scheme</h3>
+              <div id="answer-images" class="scan-list"></div>
+            </section>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="textbook-view" aria-labelledby="textbook-tab" hidden>
+      <div class="knowledge-search">
+        <label class="search-box" for="textbook-search">
+          <span aria-hidden="true">⌕</span>
+          <input id="textbook-search" type="search" autocomplete="off"
+            placeholder="Search all 365 knowledge points">
+          <kbd>Ctrl K</kbd>
+        </label>
+        <button id="clear-search" class="clear-search" type="button" hidden>Clear</button>
+      </div>
+
+      <section id="textbook-directory" class="textbook-directory">
+        <div class="textbook-directory-heading">
+          <p class="breadcrumb">TEXTBOOK DIRECTORY</p>
+          <h2 id="textbook-directory-title">选择课本</h2>
+          <p id="textbook-directory-note">必修 1–5 使用分册颜色；选修 1–4 保持白色。</p>
+        </div>
+        <div id="book-directory-list" class="book-directory-grid"></div>
+      </section>
+
+      <div id="textbook-browser" class="workspace textbook-workspace" hidden>
+        <aside class="navigator textbook-nav" aria-label="Textbook navigation">
+          <div class="nav-section">
+            <p id="book-nav-label" class="nav-label">9 BOOKS</p>
+            <div id="book-list" class="book-list"></div>
+          </div>
+          <div class="nav-section">
+            <p id="chapter-nav-label" class="nav-label">CHAPTERS</p>
+            <div id="chapter-list" class="chapter-list"></div>
+          </div>
+        </aside>
+
+        <article class="paper-card knowledge-card">
+          <div class="paper-heading knowledge-heading">
+            <button id="back-to-books" class="back-to-books" type="button">← 返回课本目录</button>
+            <p id="knowledge-breadcrumb" class="breadcrumb"></p>
+            <h2 id="knowledge-title"></h2>
+            <p id="knowledge-description" class="paper-description"></p>
+          </div>
+          <div id="knowledge-points" class="knowledge-points"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="mistakes-view" aria-labelledby="mistakes-tab" hidden>
+      <div class="mistakes-intro">
+        <div>
+          <p id="mistakes-breadcrumb" class="breadcrumb">MY MISTAKE BOOK</p>
+          <h2 id="mistakes-heading">Turn wrong answers into a revision plan</h2>
+          <p id="mistakes-description">Review each original question and focus on your weakest chapter.</p>
+        </div>
+        <button id="browse-for-mistakes" class="directory-action compact-action" type="button">Browse past papers <span>→</span></button>
+      </div>
+
+      <div class="mistake-kpis" aria-label="Mistake statistics">
+        <article><strong id="mistake-total">0</strong><span id="mistake-total-label">Wrong questions</span></article>
+        <article><strong id="mistake-point-total">0</strong><span id="mistake-point-label">Knowledge points involved</span></article>
+        <article><strong id="mistake-top-code">—</strong><span id="mistake-top-code-label">Weakest chapters</span></article>
+      </div>
+
+      <div class="mistake-view-switch" role="tablist" aria-label="Mistake book view">
+        <button id="mistake-questions-tab" type="button" role="tab" aria-selected="true">错题原题</button>
+        <button id="mistake-analysis-tab" type="button" role="tab" aria-selected="false">错题统计数据</button>
+      </div>
+
+      <article id="mistake-questions-panel" class="mistake-panel mistake-list-panel" role="tabpanel" aria-labelledby="mistake-questions-tab">
+        <div class="mistake-list-heading">
+          <div><p id="mistake-list-kicker" class="panel-kicker">ORIGINAL QUESTIONS</p><h3 id="mistake-list-title">Marked questions</h3></div>
+          <div class="mistake-pdf-actions">
+            <button id="download-mistake-pdf" class="mistake-pdf-button" type="button">
+              <span class="mistake-pdf-icon" aria-hidden="true">PDF</span>
+              <span id="download-mistake-pdf-label">Download PDF</span>
+            </button>
+            <small id="mistake-pdf-order">Compulsory 1-5 · Elective 1-4</small>
+          </div>
+        </div>
+        <p id="mistake-pdf-status" class="mistake-pdf-status" aria-live="polite" hidden></p>
+        <div id="mistake-question-list" class="mistake-question-list" aria-live="polite"></div>
+      </article>
+
+      <article id="mistake-analysis-panel" class="mistake-analysis-report" role="tabpanel" aria-labelledby="mistake-analysis-tab" hidden>
+        <div class="mistake-report-heading">
+          <div><p id="mistake-report-kicker" class="panel-kicker">MISTAKE ANALYSIS</p><h3 id="mistake-report-title">Detailed mistake report</h3></div>
+          <p id="mistake-report-note">See your weak chapters and knowledge points.</p>
+        </div>
+        <div class="mistake-report-grid">
+          <section class="mistake-report-card">
+            <div class="panel-heading"><div><p id="mistake-chapter-kicker" class="panel-kicker">WEAK CHAPTERS</p><h3 id="mistake-chapter-title">Mistakes by chapter</h3></div></div>
+            <div id="mistake-chapter-chart" class="bar-chart mistake-chart"></div>
+          </section>
+          <section class="mistake-report-card mistake-point-report">
+            <div class="panel-heading"><div><p id="mistake-point-kicker" class="panel-kicker">WRONG KNOWLEDGE POINTS</p><h3 id="mistake-point-title">Knowledge points in your mistakes</h3></div></div>
+            <div id="mistake-point-list" class="mistake-point-list"></div>
+          </section>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <noscript>This study site requires JavaScript for navigation.</noscript>
+  <script src="site-data.js"></script>
+  <script src="textbook-data.js?v=20260813-2"></script>
+  <script src="textbook-card-fixes.js?v=20260816-2"></script>
+  <script src="knowledge-network-data.js"></script>
+  <script src="paper2-knowledge-data.js?v=20260815-1"></script>
+  <script src="statistics-data.js"></script>
+  <script src="vendor/pdf-lib.min.js?v=20260816-1"></script>
+  <script src="mistake-pdf.js?v=20260816-1"></script>
+  <script src="app.js?v=20260816-4"></script>
+</body>
+</html>
