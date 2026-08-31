@@ -52,6 +52,16 @@ export function PapersView({ language, mistakes, setMistake, targetKey, clearTar
   const year = years[yearIndex] || years[0];
   const paper = year?.papers[paperIndex] || year?.papers[0];
   const question = paper?.questions[questionIndex] || paper?.questions[0];
+  const questionGroups = useMemo(() => {
+    if (!paper?.questions?.length) return [];
+    const hasSections = paper.questions.some((item) => item.section);
+    if (!hasSections) return [{ id: "all", label: "", questions: paper.questions.map((item, index) => ({ item, index })) }];
+    return [...new Set(paper.questions.map((item) => item.section).filter(Boolean))].map((section) => ({
+      id: section,
+      label: `Q${section}`,
+      questions: paper.questions.map((item, index) => ({ item, index })).filter(({ item }) => item.section === section),
+    }));
+  }, [paper]);
   const key = year && paperIndex < 3 ? networkKey(year.year, paperIndex, questionIdentity(question, questionIndex)) : "";
   const network = year && paperIndex < 3 ? networkFor(year.year, paperIndex, question, questionIndex) : { links: [] };
   const results = useMemo(() => searchEntries(language, query).slice(0, 30), [language, query]);
@@ -88,7 +98,7 @@ export function PapersView({ language, mistakes, setMistake, targetKey, clearTar
         <aside className="paper-navigator">
           <div className="navigator-block"><p>{language === "eng" ? "YEAR" : "年份"}</p><div className="year-grid">{years.map((item, index) => <button key={item.id} className={cn(index === yearIndex && "active")} onClick={() => selectYear(index)}>{item.year}</button>)}</div></div>
           <div className="navigator-block"><p>{language === "eng" ? "PAPER" : "試卷"}</p><div className="paper-choice-list">{year.papers.map((item, index) => <button key={`${item.title}-${index}`} className={cn(index === paperIndex && "active")} onClick={() => selectPaper(index)}><span>{titleForPaper(item, index, language)}</span><small>{item.questions.length}</small></button>)}</div></div>
-          <div className="navigator-block question-block"><p>{language === "eng" ? "QUESTION / PAGE" : "題目／頁數"}</p><div className="question-chip-grid">{paper.questions.map((item, index) => { const itemKey = paperIndex < 3 ? networkKey(year.year, paperIndex, questionIdentity(item, index)) : ""; return <button key={`${item.label}-${index}`} className={cn(index === questionIndex && "active", mistakes[itemKey] && "mistake")} onClick={() => selectQuestion(index)}>{item.label.replace("Page ", "P")}</button>; })}</div></div>
+          <div className="navigator-block question-block"><p>{language === "eng" ? "QUESTION / PAGE" : "題目／頁數"}</p><div className={cn("question-groups", questionGroups.length > 1 && "sectioned")}>{questionGroups.map((group) => <section className="question-group" key={group.id}>{group.label && <h3>{group.label}</h3>}<div className="question-chip-grid">{group.questions.map(({ item, index }) => { const itemKey = paperIndex < 3 ? networkKey(year.year, paperIndex, questionIdentity(item, index)) : ""; return <button key={`${item.label}-${index}`} className={cn(index === questionIndex && "active", mistakes[itemKey] && "mistake")} onClick={() => selectQuestion(index)}>{item.label.replace("Page ", "P")}</button>; })}</div></section>)}</div></div>
         </aside>
 
         <article className="question-card">

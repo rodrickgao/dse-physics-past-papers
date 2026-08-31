@@ -45,3 +45,8 @@
 @media(max-width:720px){.view-heading{align-items:flex-start;flex-direction:column}.paper-progress,.textbook-count{display:none}.question-header{align-items:flex-start;flex-direction:column}.question-header-actions{width:100%;justify-content:space-between}.question-chip-grid{grid-template-columns:repeat(5,1fr)}.book-grid{grid-template-columns:1fr}.mistake-analysis{grid-template-columns:1fr}.search-results-panel{width:calc(100% - 34px)}}
 @media(max-width:480px){.question-header-actions{align-items:stretch;flex-direction:column}.stepper{width:100%}.stepper button{flex:1}.question-body{padding:12px}.question-chip-grid,.question-block .question-chip-grid{grid-template-columns:repeat(4,1fr)}.mistake-row{grid-template-columns:72px minmax(0,1fr)}.mistake-thumbnail{width:72px;height:68px}.mistake-row-actions{grid-column:1/-1}.mistake-row-actions button:first-child{flex:1}}
 .mistake-heading-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:7px}.export-error{margin:-12px 0 16px;border-radius:10px;background:color-mix(in srgb,var(--destructive) 10%,var(--card));padding:10px 12px;color:var(--destructive);font-size:11px}.spin{animation:spin 900ms linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Separate Paper 2 into its four question groups. */
+.question-groups.sectioned{display:grid;gap:14px}
+.question-groups.sectioned .question-group+.question-group{border-top:1px solid var(--border);padding-top:13px}
+.question-group h3{margin:0 0 8px;color:var(--foreground);font-size:11px;font-weight:850;letter-spacing:.06em}
