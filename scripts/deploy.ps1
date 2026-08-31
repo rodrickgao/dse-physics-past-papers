@@ -3,7 +3,8 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
 
-node --check app.js
+npm ci
+npm run build
 node --check cloudflare/worker.js
 git diff --check
 

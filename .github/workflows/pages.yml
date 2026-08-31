@@ -25,23 +25,14 @@ jobs:
       - name: Check out the latest website
         uses: actions/checkout@v4
 
-      - name: Prepare the public website
-        shell: bash
-        run: |
-          mkdir -p _site
-          cp -R assets vendor _site/
-          cp \
-            index.html \
-            app.js \
-            knowledge-network-data.js \
-            mistake-pdf.js \
-            paper2-knowledge-data.js \
-            site-data.js \
-            statistics-data.js \
-            styles.css \
-            textbook-card-fixes.js \
-            textbook-data.js \
-            _site/
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build the study website
+        run: npm ci && npm run build
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
@@ -51,7 +42,7 @@ jobs:
       - name: Upload website
         uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: dist
 
       - name: Publish website
         id: deployment
