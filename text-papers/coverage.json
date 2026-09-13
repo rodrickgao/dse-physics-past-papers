@@ -2,50 +2,50 @@
   {
     "year": 2012,
     "language": "eng",
-    "records": 47,
+    "records": 83,
     "textQuestions": 37,
-    "detailedSolutions": 0,
-    "officialText": 36
+    "detailedSolutions": 36,
+    "officialText": 68
   },
   {
     "year": 2012,
     "language": "chn",
-    "records": 47,
-    "textQuestions": 0,
-    "detailedSolutions": 0,
-    "officialText": 36
+    "records": 83,
+    "textQuestions": 36,
+    "detailedSolutions": 36,
+    "officialText": 68
   },
   {
     "year": 2013,
     "language": "eng",
-    "records": 47,
+    "records": 83,
     "textQuestions": 36,
     "detailedSolutions": 0,
-    "officialText": 36
+    "officialText": 68
   },
   {
     "year": 2013,
     "language": "chn",
-    "records": 47,
+    "records": 83,
     "textQuestions": 0,
     "detailedSolutions": 0,
-    "officialText": 36
+    "officialText": 68
   },
   {
     "year": 2014,
     "language": "eng",
-    "records": 43,
+    "records": 79,
     "textQuestions": 2,
     "detailedSolutions": 0,
-    "officialText": 33
+    "officialText": 65
   },
   {
     "year": 2014,
     "language": "chn",
-    "records": 43,
+    "records": 79,
     "textQuestions": 0,
     "detailedSolutions": 0,
-    "officialText": 33
+    "officialText": 65
   },
   {
     "year": 2015,
@@ -206,5 +206,21 @@
     "textQuestions": 82,
     "detailedSolutions": 82,
     "officialText": 65
+  },
+  {
+    "year": 2025,
+    "language": "eng",
+    "records": 81,
+    "textQuestions": 81,
+    "detailedSolutions": 81,
+    "officialText": 65
+  },
+  {
+    "year": 2025,
+    "language": "chn",
+    "records": 81,
+    "textQuestions": 81,
+    "detailedSolutions": 81,
+    "officialText": 74
   }
 ]

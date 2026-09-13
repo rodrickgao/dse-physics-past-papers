@@ -28,7 +28,7 @@ await page.setViewportSize({width:390,height:844});
 await page.screenshot({path:`${output}/mobile-eng.png`,fullPage:true});
 assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'mobile page overflow');
 await page.setViewportSize({width:1440,height:1000});
-await page.locator('.year-grid').getByRole('button',{name:'2012',exact:true}).click();
+await page.locator('.year-grid').getByRole('button',{name:'2013',exact:true}).click();
 await page.getByRole('button',{name:'Switch language',exact:true}).click();
 await page.getByText('文字版尚待逐題核驗', {exact:false}).waitFor();
 await page.locator('.sidebar .nav-list button').nth(3).click();
@@ -50,7 +50,7 @@ assert.equal(await pop2.locator('.working-space').count(),1);await pop2.close();
 if(process.argv.includes('--pdf')){
  const ctx={window:{}};vm.runInNewContext(fs.readFileSync('site-data.js','utf8'),ctx);
  for(const language of ['eng','chn'])for(const mode of ['questions','detailed']){
-  const specs=mode==='questions'?[[2024,0,0],[2024,0,1]]:[[2024,0,0],[2021,2,17]];
+  const specs=mode==='questions'?[[2025,0,6],[2025,1,2]]:[[2025,0,6],[2025,1,6],[2025,2,0]];
   const entries=specs.map(([yr,pi,qi])=>{const year=ctx.window.DSE_SITE_DATA.years.find(y=>Number(y.year)===yr&&y.language===language);const paper=year.papers[pi];const question=paper.questions[qi];return {year,paper,paperIndex:pi,question,key:`${yr}|${['paper-1a','paper-1b','paper-2'][pi]}|${question.id||qi+1}`};});
   const contents=entries.map(e=>JSON.parse(fs.readFileSync(`text-papers/${e.year.year}-${language}.json`))[e.key]);
   const html=printDocumentHtml(entries,contents,{language,mode,spaceMm:50,baseUrl:'http://127.0.0.1:5173/'});

@@ -26,7 +26,7 @@ export const STUDY_CSS = `
  .study-content math {font-family:"Times New Roman",serif;font-size:1em;max-width:100%}
  .study-content.official-content {color:#f00}
  .study-content.reasoning-content {color:#0000ff}
- .study-source-note {font:13px/1.5 system-ui,sans-serif;color:#595959;margin:10px 0;background:#fff}
+ .study-source-note {font:13px/1.5 "Times New Roman",SimSun,"Songti SC",serif;color:#595959;margin:10px 0;background:#fff}
 `;
 
 export function scanHtml(paths, yearId) {
@@ -40,9 +40,10 @@ export function printableQuestion(entry, content, { language, mode, spaceMm = 50
   const question = content?.question || scanHtml(entry.question.question, entry.year.id);
   const official = content?.official || (entry.question.answerText ? `<p>${escapeHtml(entry.question.answerText)}</p>` : scanHtml(entry.question.answer, entry.year.id));
   return `<article class="print-question" data-question="${escapeHtml(entry.key)}"><h2>${escapeHtml(title)}</h2>
+    ${content?.sourceNote ? `<p class="study-source-note">${escapeHtml(content.sourceNote)}</p>` : ""}
     <h3>1. ${en ? "Question" : "題目"}</h3><div class="study-content question-content">${question}</div>
     ${!content?.question ? `<p class="study-source-note">${en ? "Original scan retained while text transcription is verified." : "文字轉錄尚待核驗，保留原卷以免誤抄。"}</p>` : ""}
-    ${mode === "questions" ? `<div class="working-space" style="height:${Math.min(120, Math.max(20, Number(spaceMm) || 50))}mm"><span>${en ? "Working space" : "作答區"}</span></div>` : `
+    ${mode === "questions" ? `<div class="working-space" style="height:${Math.min(120, Math.max(20, Number(spaceMm) || 50))}mm"><span>${escapeHtml(title)} — ${en ? "Working space" : "作答區"}</span></div>` : `
       <h3>2. ${en ? "HKEAA official answer / marking scheme" : "考評局官方解答／評分參考"}</h3><div class="study-content official-content">${official || `<p>${en ? "Official source unavailable." : "暫缺官方來源。"}</p>`}</div>
       <h3>3. ${en ? "Detailed reasoning" : "詳細思路解答"}</h3><div class="study-content reasoning-content">${content?.reasoning || `<p>${pending}</p>`}</div>`}
   </article>`;
@@ -59,6 +60,7 @@ export function printDocumentHtml(entries, contents, options) {
     .print-question{padding-top:12pt}.print-question+.print-question{break-before:page}
     .study-content{font-size:11pt;line-height:1.18}.reasoning-content,.official-content{font-size:10.5pt}
     .study-content p{margin-bottom:5pt}.study-content img{max-height:7.6in;max-width:100%;object-fit:contain}
+    .study-content td img{max-height:1.7in}.study-content td .study-figure{margin:5pt 0}
     .working-space{break-inside:avoid;margin-top:15pt;min-height:20mm}.working-space span{font-size:9pt;color:#777}
     .print-intro{font-size:10pt;margin:0 0 18pt}.print-actions{font-family:system-ui;padding:16px;background:#fff;border-bottom:1px solid #ddd;margin-bottom:20px}.print-actions button{padding:10px;margin-right:10px}
     @media print{.print-actions{display:none}*{print-color-adjust:exact;-webkit-print-color-adjust:exact}}

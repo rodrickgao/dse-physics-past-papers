@@ -113,6 +113,7 @@ def convert(path,assets):
   return result
 
 def main():
+ raise SystemExit('Use the workspace tools/update_expert_database.py then tools/export_website_database.py. Independent Word imports would discard canonical corrections and newly verified records.')
  ap=argparse.ArgumentParser();ap.add_argument('--workspace',type=Path,required=True);a=ap.parse_args()
  repo=Path(__file__).resolve().parents[1];out=repo/'text-papers';assets=out/'media';assets.mkdir(parents=True,exist_ok=True)
  bank=json.loads((a.workspace/'真题库/records.json').read_text(encoding='utf8'))['records']

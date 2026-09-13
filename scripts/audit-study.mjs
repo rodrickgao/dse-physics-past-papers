@@ -8,7 +8,7 @@ for(const y of ctx.window.DSE_SITE_DATA.years){
   const id=q.id || Number(q.label.replace(/\D/g,'')) || qi+1;
   const key=`${y.year}|${['paper-1a','paper-1b','paper-2'][pi]}|${id}`;keys.add(key);expected++;
   if(!data[key]) {if(y.year>=2015)missing.push([y.language,key]);return;}matched++;
-  const text=data[key].official.replace(/<[^>]+>/g,'').trim();const m=text.match(/(?:answer:|答案：)\s*([ABCD])\b/)||text.match(/^([ABCD])$/);
+  const text=data[key].official.replace(/<[^>]+>/g,'').trim();const m=text.match(/(?:answer:|答案：)\s*(Deleted|[ABCD])\b/)||text.match(/^(Deleted|[ABCD])$/);
   if(q.answerText && m && q.answerText!==m[1])conflicts.push([y.language,key,q.answerText,m[1]]);
  }));
  for(const key of Object.keys(data))if(!keys.has(key))extras.push([y.language,key]);

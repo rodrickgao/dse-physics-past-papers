@@ -34,3 +34,38 @@ test('published study blocks contain only local assets and no active content',()
   }
  }
 });
+test('current release includes 2025, with honest pending coverage',()=>{
+ const release=JSON.parse(fs.readFileSync('text-papers/release.json'));
+ assert.equal(release.questions,1116);assert.equal(release.editions,2232);
+ assert.equal(release.pendingSolutions+release.detailedSolutions,release.editions);
+ for(const lang of ['eng','chn']){
+  const data=JSON.parse(fs.readFileSync(`text-papers/2025-${lang}.json`));
+  assert.equal(Object.keys(data).length,81);
+  for(const r of Object.values(data)){
+   for(const f of ['question','official','reasoning'])assert.ok(r[f]);
+   if(lang==='chn')assert.match(r.sourceNote,/並非考評局官方中文原卷/);
+  }
+ }
+ const en=JSON.parse(fs.readFileSync('text-papers/2025-eng.json'));
+ assert.match(en['2025|paper-1a|7'].reasoning,/No 45° rod angle/);
+ assert.doesNotMatch(en['2025|paper-1a|7'].reasoning,/F\s*=\s*W\s*\/\s*2/);
+ assert.match(en['2025|paper-1b|7'].reasoning,/source internal resistance is negligible/);
+ assert.match(en['2025|paper-2|1.1'].reasoning,/westward/i);
+ for(const [year,key] of [[2016,'paper-1a|29'],[2017,'paper-2|3.7'],[2018,'paper-1a|1']]){
+  for(const lang of ['eng','chn'])assert.match(JSON.parse(fs.readFileSync(`text-papers/${year}-${lang}.json`))[`${year}|${key}`].official,/Deleted|刪題|已刪去/);
+ }
+});
+test('all 2012 Paper 1A questions have reviewed bilingual text and reasoning',()=>{
+ for(const lang of ['eng','chn']){
+  const data=JSON.parse(fs.readFileSync(`text-papers/2012-${lang}.json`));
+  for(let n=1;n<=36;n++){
+   const r=data[`2012|paper-1a|${n}`];
+   for(const field of ['question','official','reasoning'])assert.ok(r?.[field],`${lang} Q${n} ${field}`);
+   assert.doesNotMatch(r.reasoning,/pending|尚待核驗/i);
+  }
+ }
+});
+test('Chinese translation disclosure also accompanies the printable edition',()=>{
+ const html=printableQuestion(entry,{...content,sourceNote:'中文研習版，並非考評局官方中文原卷。'},{language:'chn',mode:'questions'});
+ assert.match(html,/並非考評局官方中文原卷/);assert.doesNotMatch(html,/OFFICIAL|REASONING/);
+});
