@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Eye, Search, Star, X } f
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
+import { StudyQuestion } from "../components/StudyQuestion";
 import { cn } from "../lib/utils";
 import { imageUrl, networkFor, networkKey, questionIdentity, searchEntries, yearsFor } from "../lib/data";
 
@@ -103,17 +104,15 @@ export function PapersView({ language, mistakes, setMistake, targetKey, clearTar
 
         <article className="question-card">
           <header className="question-header">
-            <div><p>{year.year} · {titleForPaper(paper, paperIndex, language)}</p><h2>{question.label}</h2><span>{paper.description}</span></div>
+            <div><p>{year.year} · {titleForPaper(paper, paperIndex, language)}</p><h2>{question.label}</h2><span>{paperIndex < 3 ? (language === "eng" ? "Question → Official answer → Detailed reasoning" : "題目 → 官方解答 → 詳細思路") : paper.description}</span></div>
             <div className="question-header-actions">
               {key && <Button variant={mistakes[key] ? "secondary" : "outline"} onClick={() => setMistake(key, !mistakes[key])}><Star className={cn(mistakes[key] && "fill-current")} />{mistakes[key] ? (language === "eng" ? "Saved" : "已加入錯題") : (language === "eng" ? "Save mistake" : "加入錯題")}</Button>}
               <div className="stepper"><Button variant="outline" size="icon" disabled={questionIndex === 0} onClick={previous} aria-label="Previous"><ArrowLeft /></Button><Button variant="outline" size="icon" disabled={questionIndex === paper.questions.length - 1} onClick={next} aria-label="Next"><ArrowRight /></Button></div>
             </div>
           </header>
           <div className="question-body">
-            <ScanImages yearId={year.id} paths={question.question} label={`${year.year} ${question.label}`} />
+            {paperIndex < 3 ? <StudyQuestion key={`${key}-${language}`} year={year} language={language} questionKey={key} question={question} ScanImages={ScanImages}/> : <ScanImages yearId={year.id} paths={question.question} label={`${year.year} ${question.label}`} />}
             {!!network.links?.length && <section className="related-panel"><div><BookOpen /><strong>{language === "eng" ? "Related knowledge" : "相關課本知識"}</strong></div><div>{network.links.map((link) => <button key={`${link.sequence}-${link.type}`} onClick={() => openKnowledge(link.sequence)}><span>{link.code}</span>{language === "eng" ? link.chapterEn : link.chapterZh}</button>)}</div></section>}
-            <Button className="answer-reveal-button" size="lg" variant={answerOpen ? "secondary" : "default"} onClick={() => setAnswerOpen(!answerOpen)}><Eye />{answerOpen ? (language === "eng" ? "Hide answer" : "收起答案") : (language === "eng" ? "Show answer" : "查看答案")}</Button>
-            {answerOpen && <section className="answer-section page-enter"><div className="answer-title"><CheckCircle2 /><div><strong>{language === "eng" ? "Answer / marking scheme" : "答案／評分參考"}</strong><span>{question.answerText ? `${language === "eng" ? "Correct option" : "正確選項"}: ${question.answerText}` : ""}</span></div></div><ScanImages yearId={year.id} paths={question.answer} label={`${year.year} answer`} />{!question.answer?.length && question.answerText && <div className="mc-answer">{question.answerText}</div>}</section>}
           </div>
         </article>
       </div>

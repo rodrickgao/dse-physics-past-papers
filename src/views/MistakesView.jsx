@@ -3,10 +3,12 @@ import { ArrowRight, BarChart3, BookOpen, CircleAlert, Download, FileQuestion, L
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { entriesByLanguage, imageUrl, pointsMap, questionLabelFromKey } from "../lib/data";
+import { openMistakePrint } from "../lib/study-content";
 
 export function MistakesView({ language, mistakes, setMistake, openPaper, browsePapers }) {
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
+  const [spaceMm, setSpaceMm] = useState(50);
   const map = new Map(entriesByLanguage[language].map((entry) => [entry.key, entry]));
   const entries = Object.keys(mistakes).map((key) => map.get(key)).filter(Boolean).sort((a, b) => b.year.year - a.year.year);
   const pointRows = new Map();
@@ -20,36 +22,20 @@ export function MistakesView({ language, mistakes, setMistake, openPaper, browse
   const chapters = [...chapterRows.entries()].sort((a, b) => b[1] - a[1]);
   const points = [...pointRows.entries()].sort((a, b) => b[1] - a[1]);
   const maxChapter = chapters[0]?.[1] || 1;
-  const exportPdf = async () => {
+  const exportPdf = async (mode) => {
     if (!entries.length || exporting) return;
     setExporting(true); setExportError("");
     try {
-      const pdfEntries = entries.map((entry) => {
-        const primary = entry.network.links?.find((link) => link.type === "primary") || entry.network.links?.[0] || {};
-        const override = window.DSE_MISTAKE_PDF?.ENTRY_OVERRIDES?.[entry.key] || {};
-        return {
-          bookKey: primary.bookKey || override.bookKey || "compulsory-1",
-          title: questionLabelFromKey(entry.key).replaceAll("·", "-"),
-          chapterEn: primary.chapterEn || override.chapterEn || "",
-          images: entry.question.question.map((path) => imageUrl(entry.year.id, path)),
-        };
-      });
-      const bytes = await window.DSE_MISTAKE_PDF.createMistakeBookPdf({
-        entries: pdfEntries,
-        loadImageBytes: async (source) => new Uint8Array(await (await fetch(source)).arrayBuffer()),
-      });
-      const date = new Date().toISOString().slice(0, 10);
-      const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
-      const link = document.createElement("a"); link.href = url; link.download = `DSE-Physics-Mistake-Book-${date}.pdf`; link.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 2000);
-    } catch {
-      setExportError(language === "eng" ? "The PDF could not be created. Please try again." : "暫時未能建立 PDF，請稍後再試。");
+      await openMistakePrint(entries, { language, mode, spaceMm });
+    } catch (error) {
+      setExportError(error.message || (language === "eng" ? "The PDF could not be created. Please try again." : "暫時未能建立 PDF，請稍後再試。"));
     } finally { setExporting(false); }
   };
 
   return (
     <div className="mistakes-view page-enter">
-      <div className="view-heading mistakes-heading"><div><p className="page-kicker"><span /> {language === "eng" ? "MISTAKE REVIEW" : "個人錯題複習"}</p><h1>{language === "eng" ? "Turn mistakes into progress" : "把錯題變成進步路線"}</h1><p>{language === "eng" ? "Return to the original question and see where to focus next." : "回到原題重新思考，並看清最需要加強的章節。"}</p></div><div className="mistake-heading-actions">{!!entries.length && <Button variant="outline" onClick={exportPdf} disabled={exporting}>{exporting ? <LoaderCircle className="spin" /> : <Download />}{language === "eng" ? "Download PDF" : "下載錯題 PDF"}</Button>}<Button onClick={browsePapers}>{language === "eng" ? "Browse papers" : "瀏覽真題"} <ArrowRight /></Button></div></div>
+      <div className="view-heading mistakes-heading"><div><p className="page-kicker"><span /> {language === "eng" ? "MISTAKE REVIEW" : "個人錯題複習"}</p><h1>{language === "eng" ? "Turn mistakes into progress" : "把錯題變成進步路線"}</h1><p>{language === "eng" ? "Return to the original question and see where to focus next." : "回到原題重新思考，並看清最需要加強的章節。"}</p></div><div className="mistake-heading-actions"><Button onClick={browsePapers}>{language === "eng" ? "Browse papers" : "瀏覽真題"} <ArrowRight /></Button></div></div>
+      {!!entries.length && <div className="export-controls"><Button variant="outline" disabled={exporting} onClick={() => exportPdf("questions")}>{exporting ? <LoaderCircle className="spin"/> : <Download/>}{language === "eng" ? "Practice PDF" : "原題版 PDF"}</Button><Button disabled={exporting} onClick={() => exportPdf("detailed")}><Download/>{language === "eng" ? "Worked solutions PDF" : "詳解版 PDF"}</Button><label>{language === "eng" ? "Working space per question " : "每題作答留白 "}<select value={spaceMm} onChange={(e) => setSpaceMm(Number(e.target.value))}>{[30, 50, 80, 120].map((n) => <option key={n} value={n}>{n} mm</option>)}</select></label><p className="export-note">{language === "eng" ? "Opens print preview: choose Save as PDF. The worked edition includes official answers and verified reasoning; pending content is labelled. Original scans retain their source colours." : "開啟列印預覽後選擇「另存為 PDF」。詳解版包含官方解答和已核驗思路；待核驗內容會註明，原卷掃描保留原色。"}</p></div>}
       {exportError && <p className="export-error" role="alert">{exportError}</p>}
       <section className="mistake-kpis">
         <Card><span className="kpi-icon rose"><CircleAlert /></span><div><strong>{entries.length}</strong><small>{language === "eng" ? "saved mistakes" : "道錯題"}</small></div></Card>

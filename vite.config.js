@@ -17,6 +17,7 @@ function copyStudyAssets() {
       ].forEach((file) => copyFileSync(resolve(root, file), resolve(output, file)));
       cpSync(resolve(root, "assets"), resolve(output, "assets"), { recursive: true });
       cpSync(resolve(root, "vendor"), resolve(output, "vendor"), { recursive: true });
+      cpSync(resolve(root, "text-papers"), resolve(output, "text-papers"), { recursive: true });
     },
   };
 }

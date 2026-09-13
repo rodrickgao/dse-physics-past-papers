@@ -32,7 +32,7 @@ jobs:
           cache: npm
 
       - name: Build the study website
-        run: npm ci && npm run build
+        run: npm ci && npm test && npm run build
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

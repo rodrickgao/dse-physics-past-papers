@@ -4,6 +4,7 @@
   "version": "2.0.0",
   "type": "module",
   "scripts": {
+    "test": "node --test tests/study-content.test.mjs && node scripts/audit-study.mjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"

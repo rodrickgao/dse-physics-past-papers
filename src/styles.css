@@ -1,4 +1,17 @@
 @import "tailwindcss";
+
+.study-flow{background:#fff;color:#111;border-radius:8px;padding:20px;min-width:0}
+.study-stage h3{display:flex;gap:12px;align-items:center;font-size:18px;font-weight:650;margin:0 0 10px}
+.study-stage h3>span{font-family:"Times New Roman",serif;font-size:22px}
+.study-stage+.study-stage{margin-top:28px;padding-top:24px;border-top:1px solid #dedede}
+.stage-guidance{font-size:13px;color:#666;margin:0 0 20px;line-height:1.6}
+.study-flow .stage-toggle{margin:22px 0;white-space:normal;height:auto;min-height:44px;line-height:1.5}
+.source-reference{margin-top:16px;color:#666;font-size:13px}.source-reference summary{cursor:pointer;padding:12px 0}
+.export-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 22px}
+.export-controls label{display:flex;align-items:center;gap:8px;font-size:13px}
+.export-controls select{border:1px solid #aaa;border-radius:6px;padding:8px;color:#111;background:#fff}
+.export-note{width:100%;font-size:13px;color:var(--muted-foreground,#666);line-height:1.6}
+@media(max-width:640px){.study-flow{padding:12px}.study-stage h3{font-size:16px}.study-content td{padding:4px!important}}
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
