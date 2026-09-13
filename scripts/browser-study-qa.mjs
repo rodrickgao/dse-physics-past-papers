@@ -28,6 +28,7 @@ await page.setViewportSize({width:390,height:844});
 await page.screenshot({path:`${output}/mobile-eng.png`,fullPage:true});
 assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'mobile page overflow');
 await page.setViewportSize({width:1440,height:1000});
+await page.locator('.archived-years summary').click();
 await page.locator('.year-grid').getByRole('button',{name:'2013',exact:true}).click();
 await page.getByRole('button',{name:'Switch language',exact:true}).click();
 await page.getByText('文字版尚待逐題核驗', {exact:false}).waitFor();

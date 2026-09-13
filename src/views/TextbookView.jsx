@@ -6,7 +6,7 @@ import { Input } from "../components/ui/input";
 import { booksFor, pointsByLanguage, questionLabelFromKey, relatedQuestionKeys, searchable } from "../lib/data";
 import { cn } from "../lib/utils";
 
-const BOOK_TONES = ["#396fd0", "#1f8792", "#2d8a5b", "#a0702c", "#ad5141", "#7854b6", "#a34786", "#b1495c", "#4f6f9a"];
+const BOOK_TONES = ["#a74050", "#287248", "#906e0e", "#396fd0", "#aa5722", "#576577", "#576577", "#576577", "#576577"];
 
 function PointCard({ point, language, openPaper }) {
   const [copied, setCopied] = useState(false);

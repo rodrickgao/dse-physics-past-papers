@@ -2,6 +2,33 @@
 
 Source repository for the DSE Physics past-paper study website.
 
+## Current workspace release — 2026-09-14
+
+The main practice directory and random-question entry prioritize 2015–2025
+(871 questions / 1,742 language editions). The 2012–2014 archive remains
+accessible, with unfinished work explicitly paused; no draft solutions from
+those years are included in this interface-only release.
+
+- Mobile question directory collapses so the question is visible first.
+- The three-stage progress strip keeps question, official answer and teaching
+  reasoning distinct; moving to another question resets the reveal state.
+- The current question is retained across reloads, back navigation and visits
+  to the knowledge or mistake views. Question links can be copied from the URL.
+- Search prioritizes recent years and reports displayed / total matches.
+- Select individual saved questions for either PDF edition. Print order is
+  year (newest first), paper, then question number. Practice writing space stays
+  adjustable; the existing white / Times New Roman / SimSun / red / blue print
+  template is unchanged.
+- Chapter counts count each saved question once per chapter, not once per
+  associated knowledge point. They are review indicators, not measured grades.
+
+`node scripts/framework-qa.mjs` checks navigation, reload/back state, keyboard
+search, sequential answers, mobile controls, selected PDF contents and fetch
+recovery. It also checks all 1,742 current-priority editions at two reading
+widths, including 1,811 image occurrences. This is a layout / data-structure
+audit, not a new physics re-mark of every answer. QA reports and screenshots
+are written outside the repo in `../tmp/framework-qa`.
+
 The interface is built with React, Vite and a local shadcn-style component layer. The original question scans and textbook datasets remain static and are packaged into the production build.
 
 ## Text study editions and printing
