@@ -7,7 +7,13 @@ body :focus-visible { outline:3px solid #3974ce; outline-offset:3px; }
 .workspace-breadcrumb svg {width:16px}.workspace-breadcrumb strong {color:var(--foreground);font-weight:600}
 .app-shell .content {padding-top:32px;max-width:1440px}
 .app-shell .view-heading {margin-bottom:22px}
-.app-shell .view-heading h1 {font-size:clamp(26px,3vw,34px);line-height:1.25}
+.app-shell .view-heading h1,.app-shell .welcome-row h1 {font-size:28px;line-height:1.25;letter-spacing:0}
+.app-shell .nav-item {min-height:46px;border-radius:8px}
+.app-shell .section-grid {margin-top:24px}
+.app-shell .library-card {border-radius:8px}
+.app-shell .library-card::after {display:none}
+.app-shell .library-card-top {margin-bottom:12px}
+.app-shell .library-card .metric {padding-right:20px;flex-wrap:wrap}
 .app-shell .paper-search-wrap {margin-bottom:20px}
 .app-shell .paper-layout {gap:22px}
 .navigator-shell {position:sticky;top:88px;min-width:0}
@@ -21,7 +27,7 @@ body :focus-visible { outline:3px solid #3974ce; outline-offset:3px; }
 .app-shell .question-header p {font-size:11px;letter-spacing:.02em}
 .app-shell .question-header>div:first-child>span {display:none}
 .app-shell .question-body {padding:0 24px 24px}
-.app-shell .study-flow {padding:0 8px 12px;border-radius:0}
+.app-shell .study-flow {padding:20px 8px 12px;border-radius:0}
 .app-shell .study-flow {--primary:#275fc7;--primary-foreground:#fff;--foreground:#172033;--card:#fff;--accent:#f1f5fb;--border:#d9e1ed}
 .study-steps {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));list-style:none;gap:10px;padding:20px 0;margin:0 0 24px;border-bottom:1px solid #e3e7ee}
 .study-steps li {display:flex;align-items:center;gap:8px;color:#747b86;font-size:12px;line-height:1.4}
@@ -77,7 +83,7 @@ body :focus-visible { outline:3px solid #3974ce; outline-offset:3px; }
   .app-shell .content {padding:24px 12px 35px}
   .app-shell .view-heading>div>p:last-child {font-size:12px;margin-top:8px}
   .app-shell .question-header {padding:18px 16px;gap:12px;scroll-margin-top:72px}
-  .app-shell .question-body {padding:0 12px 16px}.app-shell .study-flow {padding:0 3px 4px}
+  .app-shell .question-body {padding:0 12px 16px}.app-shell .study-flow {padding:16px 3px 4px}
   .study-steps {gap:6px;padding:16px 0;margin-bottom:20px}.study-steps li {font-size:11px;gap:5px}.study-steps li>span {flex-basis:20px;height:20px;font-size:10px}
   .app-shell .study-stage h3 {font-size:16px}.app-shell .study-content {font-size:16px;line-height:1.65}
   .question-footer {padding:14px 12px;gap:6px}.question-footer button {font-size:12px;padding:8px;gap:5px}
@@ -86,3 +92,5 @@ body :focus-visible { outline:3px solid #3974ce; outline-offset:3px; }
   .selection-toolbar>span {max-width:55%;font-size:11px;text-align:right}
   .workspace-breadcrumb {gap:8px;font-size:12px}
 }
+
+.source-download{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border:1px solid var(--border,#ddd);border-radius:8px;font-size:13px;font-weight:600;color:inherit;text-decoration:none;white-space:normal;text-align:center}.source-download:hover{background:var(--muted,#eee)}

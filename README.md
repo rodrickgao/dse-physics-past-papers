@@ -2,7 +2,23 @@
 
 Source repository for the DSE Physics past-paper study website.
 
-## Current workspace release — 2026-09-14
+## Current workspace release — 2026-09-15
+
+All 2012–2025 bilingual editions are included: 1,116 question identities and
+2,232 complete question/answer/reasoning records. Knowledge cards use
+book.chapter.point numbering (1.1.1 and E1.1.1), matching the bilingual Word
+documents. Stable internal IDs preserve saved questions and knowledge links.
+The knowledge view lists all 365 cards independently without category labels.
+
+The download library contains 84 full worked-paper PDFs and two knowledge PDFs,
+copied byte-for-byte from the finished study folder with its tiled watermarks.
+Each study page links to its matching edition. `downloads/catalog.json` records
+relative source names and Word/PDF hashes. Re-sync after source edits with
+`python scripts/sync-study-folder.py FOLDER`. Run
+`node scripts/qa-document-sync.mjs` to check bilingual navigation, numbering,
+mobile reading and all PDF responses against their recorded hashes.
+
+## Previous framework release — 2026-09-14
 
 The main practice directory and random-question entry prioritize 2015–2025
 (871 questions / 1,742 language editions). The 2012–2014 archive remains

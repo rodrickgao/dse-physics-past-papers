@@ -4,11 +4,12 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {printDocumentHtml} from '../src/lib/study-content.js';
 const output=process.env.QA_OUTPUT || '../tmp/website-study-qa';fs.mkdirSync(output,{recursive:true});
+const baseUrl=process.env.QA_URL || 'http://127.0.0.1:5173/';
 const browser=await chromium.launch({headless:true,channel:'chrome'});
 const page=await browser.newPage({viewport:{width:1440,height:1000}});
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
 await page.context().addInitScript(()=>{window.print=()=>{window.printCalled=true;};});
-await page.goto('http://127.0.0.1:5173/#papers');
+await page.goto(`${baseUrl}#papers`);
 await page.locator('.question-content').waitFor();
 assert.equal(await page.locator('#official-stage').count(),0);
 assert.equal(await page.locator('#reasoning-stage').count(),0);
@@ -28,10 +29,11 @@ await page.setViewportSize({width:390,height:844});
 await page.screenshot({path:`${output}/mobile-eng.png`,fullPage:true});
 assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'mobile page overflow');
 await page.setViewportSize({width:1440,height:1000});
-await page.locator('.archived-years summary').click();
-await page.locator('.year-grid').getByRole('button',{name:'2013',exact:true}).click();
+await page.locator('.year-grid').getByRole('button',{name:'2014',exact:true}).click();
+await page.locator('.paper-choice-list button').nth(1).click();
 await page.getByRole('button',{name:'Switch language',exact:true}).click();
-await page.getByText('文字版尚待逐題核驗', {exact:false}).waitFor();
+await page.locator('.study-flow[data-question="2014|paper-1b|1"] .question-content').waitFor();
+assert.equal(await page.getByText('文字版尚待逐題核驗', {exact:false}).count(),0);
 await page.locator('.sidebar .nav-list button').nth(3).click();
 await page.getByRole('button',{name:'詳解版 PDF',exact:true}).waitFor();
 await page.screenshot({path:`${output}/mistakes.png`,fullPage:true});
@@ -51,10 +53,10 @@ assert.equal(await pop2.locator('.working-space').count(),1);await pop2.close();
 if(process.argv.includes('--pdf')){
  const ctx={window:{}};vm.runInNewContext(fs.readFileSync('site-data.js','utf8'),ctx);
  for(const language of ['eng','chn'])for(const mode of ['questions','detailed']){
-  const specs=mode==='questions'?[[2025,0,6],[2025,1,2]]:[[2025,0,6],[2025,1,6],[2025,2,0]];
+  const specs=mode==='questions'?[[2025,0,6],[2025,1,2],[2014,1,5]]:[[2025,0,6],[2025,1,6],[2025,2,0],[2014,1,5],[2012,2,8],[2013,2,17]];
   const entries=specs.map(([yr,pi,qi])=>{const year=ctx.window.DSE_SITE_DATA.years.find(y=>Number(y.year)===yr&&y.language===language);const paper=year.papers[pi];const question=paper.questions[qi];return {year,paper,paperIndex:pi,question,key:`${yr}|${['paper-1a','paper-1b','paper-2'][pi]}|${question.id||qi+1}`};});
   const contents=entries.map(e=>JSON.parse(fs.readFileSync(`text-papers/${e.year.year}-${language}.json`))[e.key]);
-  const html=printDocumentHtml(entries,contents,{language,mode,spaceMm:50,baseUrl:'http://127.0.0.1:5173/'});
+  const html=printDocumentHtml(entries,contents,{language,mode,spaceMm:50,baseUrl});
   const printPage=await browser.newPage();await printPage.setContent(html,{waitUntil:'networkidle'});await printPage.evaluate(()=>document.fonts.ready);
   assert.ok(await printPage.locator('img').evaluateAll(imgs=>imgs.every(x=>x.complete&&x.naturalWidth>0)));
   await printPage.pdf({path:`${output}/${language}-${mode}.pdf`,preferCSSPageSize:true,printBackground:true});await printPage.close();
@@ -62,4 +64,4 @@ if(process.argv.includes('--pdf')){
 }
 assert.deepEqual(errors,[]);
 await browser.close();
-console.log('PASS: sequential reveal, reset, language switch, mobile width, pending-source fallback, both print flows, assets and console.');
+console.log('PASS: sequential reveal, reset, language switch, mobile width, completed early years, both print flows, assets and console.');

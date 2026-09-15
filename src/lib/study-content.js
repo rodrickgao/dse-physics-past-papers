@@ -15,7 +15,7 @@ export const STUDY_CSS = `
  .study-content {font-family:"Times New Roman",SimSun,"Songti SC",serif;font-size:16px;line-height:1.5;color:#000;background:#fff;overflow-wrap:anywhere}
  .study-content p {margin:0 0 8px;white-space:normal;break-inside:avoid}
  .study-content img {max-width:100%;height:auto;object-fit:contain;border:0;background:#fff;display:inline-block;vertical-align:middle}
- .study-content .study-figure {text-align:center;margin:12px 0;break-inside:avoid}
+ .study-content .study-figure {display:block;text-align:center;margin:12px 0;break-inside:avoid}
  .study-content table {width:100%;table-layout:fixed;border-collapse:collapse;margin:8px 0;background:#fff}
  .study-content tr {break-inside:avoid}
  .study-content td {vertical-align:top;padding:6px 10px;border:0;background:#fff;overflow-wrap:anywhere}

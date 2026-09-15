@@ -30,14 +30,15 @@ test('published study blocks contain only local assets and no active content',()
    const html=[r.question,r.official,r.reasoning].join('');
    assert.doesNotMatch(html,/<script|\bon\w+\s*=|javascript:|file:\/\/|C:\\/i,`${file} ${key}`);
    for(const [,src]of html.matchAll(/<img[^>]+src="([^"]+)"/g))assert.ok(fs.existsSync(src),src);
-   if(Number(file.slice(0,4))>=2015)for(const field of ['question','official','reasoning'])assert.ok(r[field],`${file} ${key} ${field}`);
+   for(const field of ['question','official','reasoning'])assert.ok(r[field],`${file} ${key} ${field}`);
   }
  }
 });
-test('current release includes 2025, with honest pending coverage',()=>{
+test('current release has complete 2012-2025 question and reasoning coverage',()=>{
  const release=JSON.parse(fs.readFileSync('text-papers/release.json'));
  assert.equal(release.questions,1116);assert.equal(release.editions,2232);
  assert.equal(release.pendingSolutions+release.detailedSolutions,release.editions);
+ assert.equal(release.pendingSolutions,0);assert.equal(release.nativeQuestions,2232);
  for(const lang of ['eng','chn']){
   const data=JSON.parse(fs.readFileSync(`text-papers/2025-${lang}.json`));
   assert.equal(Object.keys(data).length,81);

@@ -4,9 +4,9 @@ import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { StudyQuestion } from "../components/StudyQuestion";
+import { SourceDownload } from "../components/SourceDownload";
 import { cn } from "../lib/utils";
-import { imageUrl, networkFor, networkKey, questionIdentity, searchEntries, yearsFor } from "../lib/data";
-import { PRIMARY_YEAR } from "../lib/study-state";
+import { chapterLabel, knowledgeNumber, imageUrl, networkFor, networkKey, questionIdentity, searchEntries, yearsFor } from "../lib/data";
 
 function titleForPaper(paper, index, language) {
   if (language === "eng") return paper.title;
@@ -20,17 +20,19 @@ function ScanImages({ yearId, paths, label }) {
 
 export function PapersView({ language, mistakes, setMistake, targetKey, clearTarget, initialQuery = "", openKnowledge, onQuestionChange }) {
   const years = useMemo(() => yearsFor(language), [language]);
-  const [yearIndex, setYearIndex] = useState(() => Math.max(0, years.length - 1));
+  const [yearIndex, setYearIndex] = useState(0);
   const [paperIndex, setPaperIndex] = useState(0);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [query, setQuery] = useState(initialQuery);
+  const [resultLimit, setResultLimit] = useState(30);
   const searchRef = useRef(null);
 
   useEffect(() => {
     setYearIndex((current) => Math.min(current, Math.max(0, years.length - 1)));
   }, [years]);
   useEffect(() => { setQuery(initialQuery); }, [initialQuery]);
+  useEffect(() => { setResultLimit(30); }, [query, language]);
   useEffect(() => {
     if (!targetKey) return;
     const [year, paperId, identity] = targetKey.split("|");
@@ -59,8 +61,8 @@ export function PapersView({ language, mistakes, setMistake, targetKey, clearTar
   }, [paper]);
   const key = year && paperIndex < 3 ? networkKey(year.year, paperIndex, questionIdentity(question, questionIndex)) : "";
   const network = year && paperIndex < 3 ? networkFor(year.year, paperIndex, question, questionIndex) : { links: [] };
-  const allResults = useMemo(() => searchEntries(language, query).sort((a,b) => Number(b.year.year) - Number(a.year.year)), [language, query]);
-  const results = allResults.slice(0, 30);
+  const allResults = useMemo(() => searchEntries(language, query), [language, query]);
+  const results = allResults.slice(0, resultLimit);
   useEffect(() => { if (key && !targetKey) onQuestionChange?.(key); }, [key, targetKey, onQuestionChange]);
 
   const selectYear = (index) => { setYearIndex(index); setPaperIndex(0); setQuestionIndex(0); };
@@ -77,25 +79,26 @@ export function PapersView({ language, mistakes, setMistake, targetKey, clearTar
   return (
     <div className="papers-view page-enter">
       <div className="view-heading">
-        <div><p className="page-kicker"><span /> {language === "eng" ? "PAST PAPERS" : "歷屆試題"}</p><h1>{language === "eng" ? "Past-paper workspace" : "真題練習工作台"}</h1><p>{language === "eng" ? "Move from question to answer without losing your place." : "選題、作答、查看答案，保持專注不中斷。"}</p></div>
+        <div><h1>{language === "eng" ? "Past papers" : "真題庫"}</h1></div>
         <div className="paper-progress"><strong>{questionIndex + 1}</strong><span>/ {paper.questions.length}</span></div>
       </div>
 
       <div className="paper-search-wrap">
         <Search />
-        <Input id="paper-search" aria-label={language === 'eng' ? 'Search questions' : '搜尋真題'} ref={searchRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={language === "eng" ? "Search year, question or concept · Ctrl K" : "搜尋年份、題號或知識點 · Ctrl K"} />
+        <Input id="paper-search" aria-label={language === 'eng' ? 'Search questions' : '搜尋真題'} ref={searchRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={language === "eng" ? "Search year, question or concept" : "搜尋年份、題號或知識點"} />
         {query && <button onClick={() => setQuery("")} aria-label="Clear"><X /></button>}
       </div>
       {query && <Card className="search-results-panel">
         <div className="search-results-heading"><strong>{language === "eng" ? "Search results" : "搜尋結果"}</strong><span>{results.length} / {allResults.length}</span></div>
         <div className="search-result-list">{results.length ? results.map((entry) => <button key={`${entry.key}-${entry.year.id}`} onClick={() => openResult(entry)}><span><strong>{entry.year.year} · {titleForPaper(entry.paper, entry.paperIndex, language)} · {entry.question.label}</strong><small>{entry.chapter || entry.network.keywords}</small></span><ArrowRight /></button>) : <p>{language === "eng" ? "No matching questions." : "找不到相符題目。"}</p>}</div>
+        {results.length < allResults.length && <Button variant="ghost" onClick={() => setResultLimit(limit => limit + 30)}><ChevronDown />{language === 'eng' ? 'Show more results' : '顯示更多結果'}</Button>}
       </Card>}
 
       <div className="paper-layout">
         <div className={cn('navigator-shell', pickerOpen && 'is-open')}>
         <button className="mobile-picker" aria-expanded={pickerOpen} aria-controls="paper-navigator" onClick={() => setPickerOpen(!pickerOpen)}><span><small>{language === 'eng' ? 'SELECT A QUESTION' : '選擇題目'}</small><strong>{year.year} · {titleForPaper(paper, paperIndex, language)} · {question.label}</strong></span><ChevronDown/></button>
         <aside className="paper-navigator" id="paper-navigator" aria-label={language === 'eng' ? 'Question directory' : '選題目錄'}>
-          <div className="navigator-block"><p>{language === "eng" ? "STUDY YEARS · 2015–2025" : "練習年份 · 2015–2025"}</p><div className="year-grid">{years.map((item, index) => ({item,index})).filter(({item}) => Number(item.year) >= PRIMARY_YEAR).reverse().map(({item,index}) => <button key={item.id} aria-pressed={index === yearIndex} className={cn(index === yearIndex && "active")} onClick={() => selectYear(index)}>{item.year}</button>)}</div><details className="archived-years" open={Number(year.year) < PRIMARY_YEAR || undefined}><summary>{language === 'eng' ? '2012–2014 · Archive' : '2012–2014 · 早期資料'}</summary><p>{language === 'eng' ? 'Further editing is paused; unverified content remains labelled.' : '暫緩完善；待核驗內容保留標註。'}</p><div className="year-grid">{years.map((item,index) => ({item,index})).filter(({item}) => Number(item.year) < PRIMARY_YEAR).map(({item,index}) => <button key={item.id} aria-pressed={index === yearIndex} className={cn(index === yearIndex && 'active')} onClick={() => selectYear(index)}>{item.year}</button>)}</div></details></div>
+          <div className="navigator-block"><p>{language === "eng" ? "STUDY YEARS · 2012–2025" : "練習年份 · 2012–2025"}</p><div className="year-grid">{years.map((item,index) => <button key={item.id} aria-pressed={index === yearIndex} className={cn(index === yearIndex && "active")} onClick={() => selectYear(index)}>{item.year}</button>)}</div></div>
           <div className="navigator-block"><p>{language === "eng" ? "PAPER" : "試卷"}</p><div className="paper-choice-list">{year.papers.map((item, index) => <button key={`${item.title}-${index}`} className={cn(index === paperIndex && "active")} onClick={() => selectPaper(index)}><span>{titleForPaper(item, index, language)}</span><small>{item.questions.length}</small></button>)}</div></div>
           <div className="navigator-block question-block"><p>{language === "eng" ? "QUESTION / PAGE" : "題目／頁數"}</p><div className={cn("question-groups", questionGroups.length > 1 && "sectioned")}>{questionGroups.map((group) => <section className="question-group" key={group.id}>{group.label && <h3>{group.label}</h3>}<div className="question-chip-grid">{group.questions.map(({ item, index }) => { const itemKey = paperIndex < 3 ? networkKey(year.year, paperIndex, questionIdentity(item, index)) : ""; return <button key={`${item.label}-${index}`} className={cn(index === questionIndex && "active", mistakes[itemKey] && "mistake")} onClick={() => selectQuestion(index)}>{item.label.replace("Page ", "P")}</button>; })}</div></section>)}</div></div>
         </aside>
@@ -103,15 +106,17 @@ export function PapersView({ language, mistakes, setMistake, targetKey, clearTar
 
         <article className="question-card">
           <header className="question-header" id="current-question" tabIndex={-1}>
-            <div><p>{year.year} · {titleForPaper(paper, paperIndex, language)}</p><h2>{question.label}</h2><span>{paperIndex < 3 ? (language === "eng" ? "Question → Official answer → Detailed reasoning" : "題目 → 官方解答 → 詳細思路") : paper.description}</span></div>
+            <div><p>{year.year} · {titleForPaper(paper, paperIndex, language)}</p><h2>{question.label}</h2></div>
             <div className="question-header-actions">
+              <SourceDownload language={language} year={year.year} paper={["paper-1a", "paper-1b", "paper-2"][paperIndex]} />
               {key && <Button variant={mistakes[key] ? "secondary" : "outline"} onClick={() => setMistake(key, !mistakes[key])}><Star className={cn(mistakes[key] && "fill-current")} />{mistakes[key] ? (language === "eng" ? "Saved" : "已加入錯題") : (language === "eng" ? "Save mistake" : "加入錯題")}</Button>}
               <div className="stepper"><Button variant="outline" size="icon" disabled={questionIndex === 0} onClick={previous} aria-label="Previous"><ArrowLeft /></Button><Button variant="outline" size="icon" disabled={questionIndex === paper.questions.length - 1} onClick={next} aria-label="Next"><ArrowRight /></Button></div>
             </div>
           </header>
           <div className="question-body">
             {paperIndex < 3 ? <StudyQuestion key={`${key}-${language}`} year={year} language={language} questionKey={key} question={question} ScanImages={ScanImages}/> : <ScanImages yearId={year.id} paths={question.question} label={`${year.year} ${question.label}`} />}
-            {!!network.links?.length && <section className="related-panel"><div><BookOpen /><strong>{language === "eng" ? "Related knowledge" : "相關課本知識"}</strong></div><div>{network.links.map((link) => <button key={`${link.sequence}-${link.type}`} onClick={() => openKnowledge(link.sequence)}><span>{link.code} · #{link.sequence}</span>{language === "eng" ? link.chapterEn : link.chapterZh}</button>)}</div></section>}
+            {!!network.links?.length && <section className="related-panel"><div><BookOpen /><strong>{language === "eng" ? "Related knowledge" : "相關課本知識"}</strong></div><div>{network.links.map((link) => <button key={`${link.sequence}-${link.type}`} onClick={() => openKnowledge(link.sequence)}><span>{knowledgeNumber(link.sequence, language)}</span>{language === "eng" ? link.chapterEn : link.chapterZh}</button>)}</div></section>}
+            {!network.links?.length && !!network.chapters?.length && <section className="related-panel"><div><BookOpen /><strong>{language === 'eng' ? 'Related chapters' : '相關章節'}</strong></div><div>{network.chapters.map(code => <span className="related-chapter" key={code}>{code} · {chapterLabel(code, language)}</span>)}</div></section>}
           </div>
           <footer className="question-footer"><Button variant="outline" disabled={questionIndex === 0} onClick={previous}><ArrowLeft/>{language === 'eng' ? 'Previous question' : '上一題'}</Button><span>{questionIndex + 1} / {paper.questions.length}</span><Button variant="outline" disabled={questionIndex === paper.questions.length - 1} onClick={next}>{language === 'eng' ? 'Next question' : '下一題'}<ArrowRight/></Button></footer>
         </article>

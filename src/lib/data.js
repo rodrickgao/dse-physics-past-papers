@@ -1,3 +1,6 @@
+import { createKnowledgeGrouper } from './knowledge-groups.js';
+import { numberKnowledgePoints } from './knowledge-numbering.js';
+
 export const siteData = window.DSE_SITE_DATA;
 export const textbookData = window.DSE_TEXTBOOK_DATA;
 export const statistics = window.DSE_STATISTICS;
@@ -46,8 +49,17 @@ export function questionLabelFromKey(key) {
   return `${year} · ${paperLabel} · Q${question}`;
 }
 
-export const pointsByLanguage = textbookData?.languages || { eng: [], chn: [] };
+export const pointsByLanguage = Object.fromEntries(Object.entries(textbookData?.languages || { eng: [], chn: [] }).map(([lang, points]) => [lang, numberKnowledgePoints(points)]));
+export const groupKnowledgePoints = createKnowledgeGrouper(pointsByLanguage);
 export const pointsMap = Object.fromEntries(Object.entries(pointsByLanguage).map(([language, points]) => [language, new Map(points.map((point) => [Number(point.sequence), point]))]));
+
+export function knowledgeNumber(sequence, language = 'eng') {
+  return pointsMap[language]?.get(Number(sequence))?.number || String(sequence);
+}
+
+export function chapterLabel(code, language) {
+  return pointsByLanguage[language]?.find(point => point.code === code)?.chapter || code;
+}
 
 export const entriesByLanguage = Object.fromEntries(["eng", "chn"].map((language) => {
   const entries = [];
@@ -57,7 +69,7 @@ export const entriesByLanguage = Object.fromEntries(["eng", "chn"].map((language
         const network = networkFor(year.year, paperIndex, question, questionIndex);
         const key = networkKey(year.year, paperIndex, questionIdentity(question, questionIndex));
         const primary = network.links?.find((link) => link.type === "primary") || network.links?.[0];
-        entries.push({ year, yearIndex, paper, paperIndex, question, questionIndex, network, key, chapter: primary ? (language === "eng" ? primary.chapterEn : primary.chapterZh) : "" });
+        entries.push({ year, yearIndex, paper, paperIndex, question, questionIndex, network, key, chapter: primary ? (language === "eng" ? primary.chapterEn : primary.chapterZh) : (network.chapters || []).map(code => chapterLabel(code, language)).join(' / ') });
       });
     });
   });
@@ -76,9 +88,10 @@ export function booksFor(language) {
 }
 
 export function relatedQuestionKeys(sequence) {
+  const sequences = new Set((Array.isArray(sequence) ? sequence : [sequence]).map(Number));
   const keys = [];
   (entriesByLanguage.eng || []).forEach((entry) => {
-    if (entry.network.links?.some((link) => Number(link.sequence) === Number(sequence)) && !keys.includes(entry.key)) keys.push(entry.key);
+    if (entry.network.links?.some((link) => sequences.has(Number(link.sequence))) && !keys.includes(entry.key)) keys.push(entry.key);
   });
   return keys;
 }

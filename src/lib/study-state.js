@@ -1,4 +1,4 @@
-export const PRIMARY_YEAR = 2015;
+export const PRIMARY_YEAR = 2012;
 export const PAGES = ['home', 'papers', 'textbook', 'mistakes'];
 
 export function readRoute(hash = '') {
