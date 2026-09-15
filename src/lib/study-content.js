@@ -33,12 +33,16 @@ export function scanHtml(paths, yearId) {
   return (paths || []).map((path) => `<p class="study-figure"><img src="assets/${escapeHtml(yearId)}/${escapeHtml(path)}" alt="${escapeHtml(path)}"/></p>`).join("");
 }
 
+export function officialAnswerHtml(content, question, yearId) {
+  return content?.officialScreenshot || content?.officialOriginal || scanHtml(question?.answer, yearId);
+}
+
 export function printableQuestion(entry, content, { language, mode, spaceMm = 50 }) {
   const en = language === "eng";
   const title = `${entry.year.year} · ${["1A", "1B", "2"][entry.paperIndex]} · ${entry.question.label}`;
   const pending = en ? "Detailed reasoning is awaiting verification. No unverified explanation has been substituted." : "詳細思路尚待核驗；此處不以未核驗內容代替。";
   const question = content?.question || scanHtml(entry.question.question, entry.year.id);
-  const official = content?.official || (entry.question.answerText ? `<p>${escapeHtml(entry.question.answerText)}</p>` : scanHtml(entry.question.answer, entry.year.id));
+  const official = officialAnswerHtml(content, entry.question, entry.year.id);
   return `<article class="print-question" data-question="${escapeHtml(entry.key)}"><h2>${escapeHtml(title)}</h2>
     ${content?.sourceNote ? `<p class="study-source-note">${escapeHtml(content.sourceNote)}</p>` : ""}
     <h3>1. ${en ? "Question" : "題目"}</h3><div class="study-content question-content">${question}</div>

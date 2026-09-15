@@ -41,14 +41,6 @@ export function TextbookContent({ point, language }) {
       <p className="knowledge-notation"><Notation text={point.formula_notes} /></p>
     </section> : <div className="knowledge-content">{point.content.split('\n').filter(Boolean).map((text, i) => <p key={i}><Notation text={text} /></p>)}</div>}
     {point.figures?.map(figure => <SourceImage key={figure.id} figure={figure} language={language} onOpen={setExpanded} />)}
-    {(point.members || [point]).filter(member => member.source_crop).map(member => <details className="knowledge-source" key={member.sequence}>
-      <summary>{point.members?.length > 1 && `#${String(member.sequence).padStart(3, '0')} · `}{language === 'eng' ? 'Textbook source excerpt' : '課本原文對照'} · PDF {member.page} · {language === 'eng' ? 'Box' : '重點框'} {member.box}</summary>
-      <p>{member.source}</p>
-      <button className="textbook-image-button" onClick={() => setExpanded({ ...member.source_crop, caption: `${member.code} · PDF ${member.page} · ${language === 'eng' ? 'Box' : '重點框'} ${member.box}` })} title={language === 'eng' ? 'Enlarge source excerpt' : '放大原文'}>
-        <img src={member.source_crop.src} width={member.source_crop.width} height={member.source_crop.height} alt={`${member.code} · PDF ${member.page} · ${language === 'eng' ? 'Box' : '重點框'} ${member.box}`} loading="lazy" />
-        <Expand aria-hidden="true" />
-      </button>
-    </details>)}
     <dialog ref={dialog} className="textbook-image-dialog" onCancel={() => setExpanded(null)} onClick={event => { if (event.target === event.currentTarget) setExpanded(null); }} aria-label={language === 'eng' ? 'Original textbook image' : '課本原圖'}>
       <div className="textbook-dialog-head"><span>{expanded?.source} · PDF {expanded?.page}</span><button onClick={() => setExpanded(null)} aria-label={language === 'eng' ? 'Close image' : '關閉圖片'}><X /></button></div>
       {expanded && <><img src={expanded.src} alt={expanded.caption} /><p><Notation text={expanded.caption} /></p></>}

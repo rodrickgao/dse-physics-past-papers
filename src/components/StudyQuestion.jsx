@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { loadStudyPaper, STUDY_CSS } from "../lib/study-content";
+import { loadStudyPaper, officialAnswerHtml, STUDY_CSS } from "../lib/study-content";
 import { Button } from "./ui/button";
 
 export function StudyQuestion({ year, language, questionKey, question, ScanImages }) {
@@ -24,8 +24,8 @@ export function StudyQuestion({ year, language, questionKey, question, ScanImage
     </section>
     <Button className="stage-toggle" disabled={loading || error} aria-expanded={stage >= 2} aria-controls="official-stage" onClick={() => setStage(stage >= 2 ? 1 : 2)}>{stage >= 2 ? (en ? "Hide answers" : "收起解答") : (en ? "2. Check the HKEAA official answer" : "2. 展開考評局官方解答")}</Button>
     {stage >= 2 && <section className="study-stage" id="official-stage"><h3><span>2</span>{en ? "HKEAA official answer / marking scheme" : "考評局官方解答／評分參考"}</h3>
-      {record?.official ? rich(record.official, "official") : question.answerText ? rich(`<p>${/^(Deleted|[ABCD])$/.test(question.answerText) ? question.answerText : "—"}</p>`, "official") : <ScanImages yearId={year.id} paths={question.answer} label="Official marking scheme"/>}
-      {record?.officialOriginal && <details className="study-original-reference"><summary>{en ? "Compare with the original marking scheme" : "對照官方評分參考原圖"}</summary>{rich(record.officialOriginal, "official")}</details>}
+      {record?.officialScreenshotType === 'typeset' && <p className="study-source-note">{en ? 'Typeset answer screenshot' : '答案排版截圖'}</p>}
+      {rich(officialAnswerHtml(record, question, year.id), "official")}
       <Button className="stage-toggle" variant="outline" aria-expanded={stage >= 3} aria-controls="reasoning-stage" onClick={() => setStage(stage >= 3 ? 2 : 3)}>{stage >= 3 ? (en ? "Hide reasoning" : "收起詳細思路") : (en ? "3. Understand the detailed reasoning" : "3. 展開詳細思路解答")}</Button>
     </section>}
     {stage >= 3 && <section className="study-stage" id="reasoning-stage"><h3><span>3</span>{en ? "Detailed reasoning" : "詳細思路解答"}</h3>{record?.reasoning ? rich(record.reasoning, "reasoning") : <p className="study-source-note">{en ? "Detailed reasoning for this question is awaiting verification. No generic explanation is presented as a completed solution." : "本題詳細思路尚待核驗；不以通用知識摘要冒充完整解答。"}</p>}</section>}
