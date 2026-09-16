@@ -7,6 +7,7 @@ import { booksFor, pointsByLanguage, questionLabelFromKey, relatedQuestionKeys, 
 import { SourceDownload } from "../components/SourceDownload";
 import { cn } from "../lib/utils";
 import { TextbookContent } from "../components/TextbookContent";
+import { useContentMotion } from "../lib/use-content-motion";
 
 const BOOK_TONES = ["#a74050", "#287248", "#906e0e", "#396fd0", "#aa5722", "#576577", "#576577", "#576577", "#576577"];
 
@@ -44,6 +45,12 @@ export function TextbookView({ language, targetSequence, clearTarget, openPaper 
   const [chapter, setChapter] = useState("all");
   const [query, setQuery] = useState("");
   const searchRef = useRef(null);
+  const panelRef = useRef(null);
+  const pendingPoint = useRef(null);
+  const chapterRef = useRef(null);
+  const panelKey = `${language}:${query ? 'search' : selectedBook ?? 'directory'}`;
+  useContentMotion(panelRef, panelKey);
+  useContentMotion(chapterRef, chapter, panelKey);
 
   useEffect(() => {
     if (!targetSequence) return;
@@ -51,10 +58,25 @@ export function TextbookView({ language, targetSequence, clearTarget, openPaper 
     const point = books[nextBook]?.points.find((item) => Number(item.sequence) === Number(targetSequence));
     if (nextBook >= 0 && point) {
       setSelectedBook(nextBook); setChapter(point.code); setQuery("");
-      window.setTimeout(() => document.getElementById(`point-${targetSequence}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+      pendingPoint.current = targetSequence;
     }
     clearTarget?.();
   }, [targetSequence, books, clearTarget]);
+
+  useEffect(() => {
+    const target = document.getElementById(`point-${pendingPoint.current}`);
+    if (!pendingPoint.current || !target) return;
+    const frame = requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
+      pendingPoint.current = null;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [selectedBook, chapter, query, targetSequence]);
+
+  const selectBook = (index) => {
+    setSelectedBook(index); setChapter('all');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
 
   const allPoints = pointsByLanguage[language] || [];
   const normalized = searchable(query);
@@ -73,20 +95,22 @@ export function TextbookView({ language, targetSequence, clearTarget, openPaper 
       </div>
       <div className="knowledge-search-wrap"><Search /><Input ref={searchRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={language === "eng" ? "Search all knowledge points" : "搜尋全部知識點"} />{query && <button onClick={() => setQuery("")}><X /></button>}</div>
 
+      <div ref={panelRef} className="knowledge-transition">
       {query ? <section className="knowledge-search-results"><div className="directory-heading"><div><p>{language === "eng" ? "SEARCH RESULTS" : "搜尋結果"}</p><h2>{searchCards.length} {language === "eng" ? "matches" : "個結果"}</h2></div></div><div className="knowledge-card-list">{searchCards.map((point) => <PointCard key={point.sequence} point={point} language={language} openPaper={openPaper} />)}</div></section>
       : selectedBook === null ? <section className="book-directory">
         <div className="directory-heading"><div><p>{language === "eng" ? "TEXTBOOK DIRECTORY" : "課本目錄"}</p><h2>{language === "eng" ? "Choose a book" : "選擇課本"}</h2></div><span>{books.length} BOOKS</span></div>
-        <div className="book-grid">{books.map((book, index) => <button key={book.name} className="book-card" style={{ "--book-tone": BOOK_TONES[index] }} onClick={() => { setSelectedBook(index); setChapter("all"); }}><span className="book-number">{String(index + 1).padStart(2, "0")}</span><span className="book-icon"><BookOpen /></span><strong>{book.name}</strong><small>{new Set(book.points.map((point) => point.code)).size} {language === "eng" ? "chapters" : "章"} · {book.points.length} {language === "eng" ? "points" : "個知識點"}</small></button>)}</div>
+        <div className="book-grid">{books.map((book, index) => <button key={book.name} className="book-card" style={{ "--book-tone": BOOK_TONES[index] }} onClick={() => selectBook(index)}><span className="book-number">{String(index + 1).padStart(2, "0")}</span><span className="book-icon"><BookOpen /></span><strong>{book.name}</strong><small>{new Set(book.points.map((point) => point.code)).size} {language === "eng" ? "chapters" : "章"} · {book.points.length} {language === "eng" ? "points" : "個知識點"}</small></button>)}</div>
       </section>
       : <div className="textbook-browser">
         <aside className="chapter-sidebar">
-          <Button variant="ghost" className="back-books" onClick={() => setSelectedBook(null)}><ArrowLeft />{language === "eng" ? "All books" : "所有課本"}</Button>
+          <Button variant="ghost" className="back-books" onClick={() => selectBook(null)}><ArrowLeft />{language === "eng" ? "All books" : "所有課本"}</Button>
           <div className="active-book-name" style={{ "--book-tone": BOOK_TONES[selectedBook] }}><span><BookOpen /></span><div><strong>{activeBook.name}</strong><small>{activeBook.points.length} {language === "eng" ? "points" : "個知識點"}</small></div></div>
           <p className="chapter-label">{language === "eng" ? "CHAPTERS" : "章節"}</p>
           <div className="chapter-list"><button className={cn(chapter === "all" && "active")} onClick={() => setChapter("all")}><span>{language === "eng" ? "All chapters" : "全部章節"}</span><small>{activeBook.points.length}</small></button>{chapters.map(([code, name]) => <button key={code} className={cn(chapter === code && "active")} onClick={() => setChapter(code)}><span><b>{code}</b>{name}</span><small>{activeBook.points.filter((point) => point.code === code).length}</small></button>)}</div>
         </aside>
-        <section className="knowledge-browser-content"><div className="knowledge-browser-heading"><p>{activeBook.name}</p><h2>{chapter === "all" ? (language === "eng" ? "All knowledge points" : "全部知識點") : chapters.find(([code]) => code === chapter)?.[1]}</h2><span>{visibleCards.length} {language === "eng" ? "cards" : "張卡片"}</span></div><div className="knowledge-card-list">{visibleCards.map((point) => <PointCard key={point.sequence} point={point} language={language} openPaper={openPaper} />)}</div></section>
+        <section ref={chapterRef} className="knowledge-browser-content"><div className="knowledge-browser-heading"><p>{activeBook.name}</p><h2>{chapter === "all" ? (language === "eng" ? "All knowledge points" : "全部知識點") : chapters.find(([code]) => code === chapter)?.[1]}</h2><span>{visibleCards.length} {language === "eng" ? "cards" : "張卡片"}</span></div><div className="knowledge-card-list">{visibleCards.map((point) => <PointCard key={point.sequence} point={point} language={language} openPaper={openPaper} />)}</div></section>
       </div>}
+      </div>
     </div>
   );
 }
